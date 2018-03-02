@@ -41,6 +41,7 @@ kill player - Kills player
 give player toolname - Searches storage areas for a tool and gives a copy to player
 respawn player - Forces player to respawn
 sit player - Makes player sit
+trip player - Flips player upside down
 jump player speed - Makes player jump with optional vertical speed
 stun player - Player falls over and cannot get up
 unstun player - Undoes stun command
@@ -53,8 +54,10 @@ unjail - Undoes jail command
 spin player - Makes player spin uncontrollably
 unspin player - Undoes spin command
 explode player radius - Makes player explode with default explosion radius 4
+health player value - Sets player health value to default 100
 fling player speed - Flings player off in a random direction with default speed 300
-float player height - Causes player to float at the desired height
+float player height - Causes player to float at the desired height above their current height
+absfloat player height - Causes player to float at the desired workspace height
 unfloat player - Undoes float command
 rocket player - Launches player into the air, where they then explode
 ff player - Gives player a forcefield
@@ -73,6 +76,7 @@ unname player - Undoes name command
 char player1 player2 - Changes player1s character to player2s (Player2 doesn't have to be in the server)
 unchar player - Resets char command and makes player look like their own avatar
 gear player id - Gives player gear with specified ID
+fov player angle - Changes the field of view angle for player
 btools player - Gives player classic build tools
 noclip player - Lets player fly and move through walls
 clip player - Should undo noclip command but it doesnt really work right now
@@ -87,8 +91,9 @@ wait time - Wait between commands given at the same time
 cmds - Shows available commands
 
 Changelog:
-1.4 (?):
-- Restructured command descriptions in script (In progress)
+1.4 (3/2/2018):
+- Restructured command descriptions in script
+- Added abshover and trip commands
 - Removed some deprecated commands
 - Fixed trello api erroring when not enabled
 1.3.1 (2/22/2018):
@@ -281,7 +286,8 @@ end
 
 local Commands = {
 	["admin"] = {
-		["Subs"] = {},
+		["Subs"] = {"tadmin","tempadmin"},
+		["Args"] = {"player"},
 		["Description"] = "Adds player to the AdminList for this server",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -294,6 +300,7 @@ local Commands = {
 	},
 	["kill"] = {
 		["Subs"] = {},
+		["Args"] = {"player"},
 		["Description"] = "Kills player",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -309,6 +316,7 @@ local Commands = {
 	},
 	["give"] = {
 		["Subs"] = {"tool"},
+		["Args"] = {"player","toolname"},
 		["Description"] = "Searches storage areas for a tool and gives a copy to player",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
@@ -348,6 +356,7 @@ local Commands = {
 	},
 	["respawn"] = {
 		["Subs"] = {"spawn"},
+		["Args"] = {"player"},
 		["Description"] = "Forces player to respawn",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -359,7 +368,8 @@ local Commands = {
 		end,
 	},
 	["sit"] = {
-		["Subs"] = {"smack"},
+		["Subs"] = {},
+		["Args"] = {"player"},
 		["Description"] = "Makes player sit",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -373,8 +383,25 @@ local Commands = {
 			end
 		end,
 	},
+	["trip"] = {
+		["Subs"] = {"smack"},
+		["Args"] = {"player"},
+		["Description"] = "Flips player upside down",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local List = GetCharList(Caller,Token[2])
+				for i=1,#List do
+					local Torso = GetTorso(List[i])
+					if Torso then
+						Torso.CFrame = Torso.CFrame * CFrame.Angles(math.rad(180),0,0)
+					end
+				end
+			end
+		end,
+	},
 	["jump"] = {
 		["Subs"] = {},
+		["Args"] = {"player","speed"},
 		["Description"] = "Makes player jump with optional vertical speed",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -400,6 +427,7 @@ local Commands = {
 	},
 	["stun"] = {
 		["Subs"] = {},
+		["Args"] = {"player"},
 		["Description"] = "Player falls over and cannot get up",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -415,6 +443,7 @@ local Commands = {
 	},
 	["unstun"] = {
 		["Subs"] = {},
+		["Args"] = {"player"},
 		["Description"] = "Undoes stun command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -430,6 +459,7 @@ local Commands = {
 	},
 	["freeze"] = {
 		["Subs"] = {},
+		["Args"] = {"player"},
 		["Description"] = "Freezes player so they cannot move",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -447,6 +477,7 @@ local Commands = {
 	},
 	["thaw"] = {
 		["Subs"] = {},
+		["Args"] = {"player"},
 		["Description"] = "Undoes freeze command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -464,6 +495,7 @@ local Commands = {
 	},
 	["punish"] = {
 		["Subs"] = {"banish"},
+		["Args"] = {"player"},
 		["Description"] = "Hides player character",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -476,6 +508,7 @@ local Commands = {
 	},
 	["unpunish"] = {
 		["Subs"] = {"unbanish"},
+		["Args"] = {"player"},
 		["Description"] = "Undoes punish command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -489,6 +522,7 @@ local Commands = {
 	},
 	["jail"] = {
 		["Subs"] = {},
+		["Args"] = {"player"},
 		["Description"] = "Puts player in an impenetrable cage",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -521,6 +555,7 @@ local Commands = {
 	},
 	["unjail"] = {
 		["Subs"] = {},
+		["Args"] = {"player"},
 		["Description"] = "Undoes jail command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -543,9 +578,14 @@ local Commands = {
 	},
 	["spin"] = {
 		["Subs"] = {},
-		["Description"] = "Makes player spin uncontrollably",
+		["Args"] = {"player","speed"},
+		["Description"] = "Makes player spin uncontrollably at default speed 30rad/s",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
+				local Speed = 30
+				if Token[3] and tonumber(Token[3]) then
+					Speed = tonumber(Token[3])
+				end
 				local List = GetCharList(Caller,Token[2])
 				for i=1,#List do
 					local Torso = GetTorso(List[i])
@@ -555,7 +595,7 @@ local Commands = {
 							Spinner = Instance.new("BodyAngularVelocity")
 							Spinner.Name = "Spinner"
 							Spinner.MaxTorque = Vector3.new(0,math.huge,0)
-							Spinner.AngularVelocity = Vector3.new(0,30,0)
+							Spinner.AngularVelocity = Vector3.new(0,Speed,0)
 							Spinner.P = 6000
 							Spinner.Parent = Torso
 						end
@@ -566,6 +606,7 @@ local Commands = {
 	},
 	["unspin"] = {
 		["Subs"] = {},
+		["Args"] = {"player"},
 		["Description"] = "Undoes spin command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -584,6 +625,7 @@ local Commands = {
 	},
 	["explode"] = {
 		["Subs"] = {},
+		["Args"] = {"player","radius"},
 		["Description"] = "Makes player explode with default explosion radius 4",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -607,8 +649,9 @@ local Commands = {
 			end
 		end,
 	},
-	["health"] = { --UNDOCUMENTED
+	["health"] = {
 		["Subs"] = {"heal","sethealth"},
+		["Args"] = {"player","value"},
 		["Description"] = "Sets player health value",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -624,7 +667,8 @@ local Commands = {
 		end,
 	},
 	["fling"] = {
-		["Subs"] = {"no","remove"},
+		["Subs"] = {},
+		["Args"] = {"player","speed"},
 		["Description"] = "Flings player off in a random direction with default speed 300",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -669,8 +713,9 @@ local Commands = {
 		end,
 	},
 	["float"] = {
-		["Subs"] = {"hover"},
-		["Description"] = "Causes player to float at the desired height",
+		["Subs"] = {"relfloat","hover","relhover"},
+		["Args"] = {"player","height"},
+		["Description"] = "Causes player to float at the desired height above their current height",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] and tonumber(Token[3]) then
 				local List = GetCharList(Caller,Token[2])
@@ -684,7 +729,31 @@ local Commands = {
 							Force.Name = "FloatForce"
 							Force.MaxForce = Vector3.new(0,100000,0)
 						end
-						Force.Position = Vector3.new(0,(List[i].HumanoidRootPart.CFrame.y + tonumber(Token[3])),0) --Edited to be relative to the player because WHY U NO
+						Force.Position = Vector3.new(0,(List[i].HumanoidRootPart.CFrame.y + tonumber(Token[3])),0)
+						Force.Parent = Torso
+					end
+				end
+			end
+		end,
+	},
+	["absfloat"] = {
+		["Subs"] = {"abshover"},
+		["Args"] = {"player","height"},
+		["Description"] = "Causes player to float at the desired workspace height",
+		["Function"] = function(Caller,Token)
+			if Token[2] and Token[3] and tonumber(Token[3]) then
+				local List = GetCharList(Caller,Token[2])
+				for i=1,#List do
+					local Humanoid = List[i]:FindFirstChild("Humanoid")
+					local Torso = GetTorso(List[i])
+					if Humanoid and Torso then
+						local Force = Torso:FindFirstChild("FloatForce")
+						if not Force then
+							Force = Instance.new("BodyPosition")
+							Force.Name = "FloatForce"
+							Force.MaxForce = Vector3.new(0,100000,0)
+						end
+						Force.Position = Vector3.new(0,tonumber(Token[3]),0)
 						Force.Parent = Torso
 					end
 				end
@@ -693,6 +762,7 @@ local Commands = {
 	},
 	["unfloat"] = {
 		["Subs"] = {"drop","unhover"},
+		["Args"] = {"player"},
 		["Description"] = "Undoes float command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -712,6 +782,7 @@ local Commands = {
 	},
 	["rocket"] = {
 		["Subs"] = {"launch"},
+		["Args"] = {"player"},
 		["Description"] = "Launches player into the air, where they then explode",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -745,6 +816,7 @@ local Commands = {
 	},
 	["ff"] = {
 		["Subs"] = {"forcefield","shield","protect"},
+		["Args"] = {"player"},
 		["Description"] = "Gives player a forcefield",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -759,6 +831,7 @@ local Commands = {
 	},
 	["unff"] = {
 		["Subs"] = {"unforcefield","unshield","unprotect"},
+		["Args"] = {"player"},
 		["Description"] = "Removes forcefield from player",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -774,9 +847,14 @@ local Commands = {
 	},
 	["speed"] = {
 		["Subs"] = {"walkspeed"},
-		["Description"] = "Changes players walkspeed to amount (16 is default)",
+		["Args"] = {"player","speed","resetspeed"},
+		["Description"] = "Changes players walkspeed to default 16 studs per second",
 		["Function"] = function(Caller,Token)
-			if Token[2] and Token[3] and tonumber(Token[3]) then
+			if Token[2] then
+				local Speed = 16
+				if Token[3] and tonumber(Token[3]) then
+					Speed = tonumber(Token[3])
+				end
 				local List = GetCharList(Caller,Token[2])
 				for i=1,#List do
 					local Humanoid = List[i]:FindFirstChild("Humanoid")
@@ -789,6 +867,7 @@ local Commands = {
 	},
 	["kick"] = {
 		["Subs"] = {},
+		["Args"] = {"player","message"},
 		["Description"] = "Kicks player from the server with optional message",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -812,6 +891,7 @@ local Commands = {
 	},
 	["ban"] = {
 		["Subs"] = {"tban","serverban"},
+		["Args"] = {"player","message"},
 		["Description"] = "Kicks player and kicks them again if they rejoin the server",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -836,6 +916,7 @@ local Commands = {
 	},
 	["pban"] = {
 		["Subs"] = {},
+		["Args"] = {"player","days","reason"},
 		["Description"] = "Kicks player and adds them to your Trello banlist if that's set up",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -888,6 +969,7 @@ local Commands = {
 	},
 	["tp"] = {
 		["Subs"] = {"teleport","tele"},
+		["Args"] = {"player","destination"},
 		["Description"] = "Teleports player1 to player2",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
@@ -915,6 +997,7 @@ local Commands = {
 	},
 	["to"] = {
 		["Subs"] = {"teleportto","teleto"},
+		["Args"] = {"player"},
 		["Description"] = "Teleports speaker to player",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -939,6 +1022,7 @@ local Commands = {
 	},
 	["resize"] = {
 		["Subs"] = {"scale","size"},
+		["Args"] = {"player","scale"},
 		["Description"] = "Resizes players character to scale, 1 being normal (R15 only)",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] and tonumber(Token[3]) then
@@ -965,6 +1049,7 @@ local Commands = {
 	},
 	["invisible"] = {
 		["Subs"] = {"hide","ghost"},
+		["Args"] = {"player"},
 		["Description"] = "Makes player invisible",
 		["Function"] = function(Caller,Token)
 			local function Invisible(Item)
@@ -987,6 +1072,7 @@ local Commands = {
 	},
 	["visible"] = {
 		["Subs"] = {"unhide","unghost"},
+		["Args"] = {"player"},
 		["Description"] = "Undoes invisible command",
 		["Function"] = function(Caller,Token)
 			local function Invisible(Item)
@@ -1011,6 +1097,7 @@ local Commands = {
 	},
 	["name"] = {
 		["Subs"] = {"rename","fakename","alias"},
+		["Args"] = {"player","name"},
 		["Description"] = "Gives player a new fake name",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
@@ -1044,6 +1131,7 @@ local Commands = {
 	},
 	["unname"] = {
 		["Subs"] = {"unalias"},
+		["Args"] = {"player"},
 		["Description"] = "Undoes name command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -1065,6 +1153,7 @@ local Commands = {
 	},
 	["char"] = {
 		["Subs"] = {"dress","disguise","cosplay"},
+		["Args"] = {"player","name"},
 		["Description"] = "Changes player1s character to player2s (Player2 doesn't have to be in the server)",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
@@ -1081,6 +1170,7 @@ local Commands = {
 	},
 	["unchar"] = {
 		["Subs"] = {"undisguise","uncosplay"},
+		["Args"] = {"player"},
 		["Description"] = "Resets char command and makes player look like their own avatar",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
@@ -1097,6 +1187,7 @@ local Commands = {
 	},
 	["gear"] = {
 		["Subs"] = {"givegear"},
+		["Args"] = {"player","id"},
 		["Description"] = "Gives player gear with specified ID",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] and tonumber(Token[3]) then
@@ -1115,9 +1206,10 @@ local Commands = {
 			end
 		end,
 	},
-	["fov"] = { --UNDOCUMENTED
+	["fov"] = {
 		["Subs"] = {"setfov"},
-		["Description"] = "Adds player to the AdminList for this server",
+		["Args"] = {"player","angle"},
+		["Description"] = "Changes the field of view angle for player",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
 				local List = GetPlayerList(Caller,Token[2])
@@ -1133,6 +1225,7 @@ local Commands = {
 	},
 	["btools"] = {
 		["Subs"] = {"buildtools"},
+		["Args"] = {"player"},
 		["Description"] = "Gives player classic build tools",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -1159,6 +1252,7 @@ local Commands = {
 	},
 	["noclip"] = {
 		["Subs"] = {},
+		["Args"] = {"player"},
 		["Description"] = "Lets player fly and move through walls",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -1174,6 +1268,7 @@ local Commands = {
 	},
 	["clip"] = {
 		["Subs"] = {},
+		["Args"] = {"player"},
 		["Description"] = "Undoes noclip command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -1197,6 +1292,7 @@ local Commands = {
 	},
 	["music"] = {
 		["Subs"] = {"sound"},
+		["Args"] = {"id","pitch","volume"},
 		["Description"] = "Plays looped music with the desired properties",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -1230,6 +1326,7 @@ local Commands = {
 	},
 	["ambient"] = {
 		["Subs"] = {},
+		["Args"] = {"num1","num2","num3"},
 		["Description"] = "Sets ambient to input (Can use just num1 or all 3)",
 		["Function"] = function(Caller,Token)
 			if Token[2] and tonumber(Token[2]) then
@@ -1243,6 +1340,7 @@ local Commands = {
 	},
 	["time"] = {
 		["Subs"] = {"settime"},
+		["Args"] = {"time"},
 		["Description"] = "Set time of day to num",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -1252,6 +1350,7 @@ local Commands = {
 	},
 	["clean"] = {
 		["Subs"] = {"cleanserver"},
+		["Args"] = {},
 		["Description"] = "Cleans up any items/debris created with commands",
 		["Function"] = function(Caller,Token)
 			for i=1,#DebrisList do
@@ -1260,74 +1359,30 @@ local Commands = {
 			DebrisList = {}
 		end,
 	},
+	["wait"] = {
+		["Subs"] = {},
+		["Args"] = {"time"},
+		["Description"] = "Wait some time in seconds between commands",
+		["Function"] = function(Caller,Token)
+			if Token[2] and tonumber(Token[2]) then
+				wait(Token[2])
+			else
+				wait()
+			end
+		end,
+	},
 	["cmds"] = {
 		["Subs"] = {"commands"},
+		["Args"] = {},
 		["Description"] = "Shows available commands",
 		["Function"] = function(Caller,Token)
 			if Caller:FindFirstChild("PlayerGui") --[[and not Caller.PlayerGui:FindFirstChild("Commands")--]] then
 				local Gui = script.Commands:Clone()
-				Gui.CmdScript.Disabled = false
+				Gui.CmdGuiScript.Disabled = false
 				Gui.Parent = Caller.PlayerGui
 			end
 		end,
 	},
-}
-
---ToDo replace this
-local Guide = {
-	{"admin player","Adds player to the AdminList for this server"},
-	{"kill player","Kills player"},
-	{"give player toolname","Searches server storage areas for a tool and gives a copy to player"},
-	{"respawn player","Forces player to respawn"},
-	{"sit player","Makes player sit"},
-	{"jump player speed","Makes player jump with optional vertical speed"},
-	{"stun player","Player falls over and cannot get up"},
-	{"unstun player","Undoes stun command"},
-	{"freeze player","Freezes player so they cannot move"},
-	{"thaw player","Undoes freeze command"},
-	{"punish player","Hides player character"},
-	{"unpunish player","Undoes punish command"},
-	{"jail player","Puts player in an impenetrable cage"},
-	{"unjail","Undoes jail command"},
-	{"spin player","Makes player spin uncontrollably"},
-	{"unspin player","Undoes spin command"},
-	{"explode player radius","Makes player explode with default explosion radius 4"},
-	{"health player number","Heals player, optional number to set exact health."},
-	{"fling player speed","Flings player off in a random direction with default speed 300"},
-	{"float player height","Causes player to float at the desired height"},
-	{"unfloat player","Undoes float command"},
-	{"rocket player","Launches player into the air, where they then explode"},
-	{"ff player","Gives player a forcefield"},
-	{"unff player","Removes forcefield from player"},
-	{"speed player amount","Changes players walkspeed to amount (16 is default)"},
-	{"kick player message","Kicks player from the server with optional message"},
-	{"ban player message","Kicks player and kicks them again if they rejoin the server"},
-	{"pban player days reason","Kicks player and adds them to your Trello banlist if that's set up"},
-	{"tp player1 player2","Teleports player1 to player2"},
-	{"to player","Teleports speaker to player"},
-	{"resize player scale","Resizes players character to scale, 1 being normal (R15 only, hats might look odd)"},
-	{"invisible player","Makes player invisible"},
-	{"visible player","Undoes invisible command"},
-	{"name player name","Gives player a new fake name"},
-	{"unname player","Undoes name command"},
-	{"char player1 player2","Changes player1s character to player2s (Player2 doesn't have to be in the server)"},
-	{"unchar player","Resets char command and makes player look like their own avatar"},
-	{"gear player id","Gives player gear with specified ID"},
-	{"btools player","Gives player classic build tools"},
-	{"noclip player","Lets player fly and move through walls"},
-	{"clip player","Should undo noclip command but it doesnt really work right now"},
-	{"freecam player","Gives player freecam. Click to teleport. Insert to stop."},
-	{"fixcam player","Fixes player's camera."},
-	{"hideguis player","Hides as many guis as possible for player"},
-	{"setcge player enum on/off","Toggles the specified CoreGui type for player"},
-	{"fov player num","Changes player FOV between 0 and 120"},
-	{"music id pitch volume","Plays looped music with the desired properties"},
-	{"music stop/off","Use parameter 'stop' or 'off' to stop music"},
-	{"ambient num1 num2 num3","Sets ambient to input (Can use just num1 or all 3)"},
-	{"time num","Set time of day to num"},
-	{"clean","Cleans up any items/debris created with commands"},
-	{"wait time","Wait between commands given at the same time"},
-	{"cmds","Shows available commands"},
 }
 
 --Someone spoke
@@ -1456,18 +1511,20 @@ end)
 --Setup commands gui
 local Frame = script.Commands.Frame.ScrollingFrame
 local Counter = 0
---for Key,Value in pairs(Commands) do
-for i=1,#Guide do
+for Command,Info in pairs(Commands) do
 	local Label = Frame.Template:Clone()
-	Label.Name = "Label"
-	Label.Text = Prefixes[1]..Guide[i][1]
-	Label.Desc.Value = Guide[i][2]
-	Label.Position = UDim2.new(0,0,0,Counter*20)
+	Label.Name = Command
+	Label.Text = Prefixes[1]..Command
+	for _,Arg in pairs(Info.Args) do
+		Label.Text = Label.Text.." "..Arg
+	end
+	Label.Desc.Value = Info.Description
+	--Label.Position = UDim2.new(0,0,0,Counter * 20) --Handled by UIListLayout
 	Label.Parent = Frame
 	Label.Visible = true
 	Counter = Counter + 1
 end
-Frame.CanvasSize = UDim2.new(0,0,0,Counter*20)
+Frame.CanvasSize = UDim2.new(0,0,0,Counter * 20)
 
 --Check all-mighty trello banlist every minute
 local BanBoardID
