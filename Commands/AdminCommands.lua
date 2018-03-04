@@ -1,6 +1,6 @@
 --Basic admin script by Haggie125
 --Put this script in ServerScriptService for best results
---Version 1.4 WIP
+local Version = "1.5 WIP"
 
 --Configuration
 --------
@@ -20,6 +20,17 @@ local BanInfo = ":D"
 --Documentation
 --------
 --[[
+	
+Say :cmds or hit Alt-C to bring up the commands gui in-game
+The commands gui will display everything you need to know about every available command
+
+Commands can be executed from the gui or spoken in chat. Examples:
+
+:tp others me - Teleport everyone else in the server to the speaker
+:kill all - Kills everyone in the server
+:jump me,haggie 100 - Makes speaker and haggie jump upwards at 100 studs per second
+:ban joe nobody likes you - Bans someone with "joe" in their name from the server (provided there is
+	only one) and displays the message "nobody likes you" as they are kicked
 
 Player targets are not case sensitive and can be:
 	- Parts of any players name
@@ -28,69 +39,9 @@ Player targets are not case sensitive and can be:
 	- "all" - Everyone in the server
 	- "others" - Everyone besides the speaker
 
-Examples:
-:tp others me - Teleport everyone else in the server to the speaker
-:kill all - Kills everyone in the server
-:jump me,haggie 100 - Makes speaker and haggie jump upwards at 100 studs per second
-:ban bob gtfo noob - Bans someone with "bob" in their name from the server (provided there is
-	only one) and displays the message "gtfo noob" as they are kicked
-
-Commands: (Can be accessed by using the :cmds command in-game)
-admin player - Adds player to the AdminList for this server
-kill player - Kills player
-give player toolname - Searches storage areas for a tool and gives a copy to player
-respawn player - Forces player to respawn
-sit player - Makes player sit
-trip player - Flips player upside down
-jump player speed - Makes player jump with optional vertical speed
-stun player - Player falls over and cannot get up
-unstun player - Undoes stun command
-freeze player - Freezes player so they cannot move
-thaw player - Undoes freeze command
-punish player - Hides player character
-unpunish player - Undoes punish command
-jail player - Puts player in an impenetrable cage
-unjail - Undoes jail command
-spin player - Makes player spin uncontrollably
-unspin player - Undoes spin command
-explode player radius - Makes player explode with default explosion radius 4
-health player value - Sets player health value to default 100
-fling player speed - Flings player off in a random direction with default speed 300
-float player height - Causes player to float at the desired height above their current height
-absfloat player height - Causes player to float at the desired workspace height
-unfloat player - Undoes float command
-rocket player - Launches player into the air, where they then explode
-ff player - Gives player a forcefield
-unff player - Removes forcefield from player
-speed player amount - Changes players walkspeed to amount (16 is default)
-kick player message - Kicks player from the server with optional message
-ban player message - Kicks player and kicks them again if they rejoin the server
-pban player days reason - Kicks player and adds them to your Trello banlist if that's set up
-tp player1 player2 - Teleports player1 to player2
-to player - Teleports speaker to player
-resize player scale - Resizes players character to scale, 1 being normal (R15 only, hats might look odd)
-invisible player - Makes player invisible
-visible player - Undoes invisible command
-name player name - Gives player a new fake name
-unname player - Undoes name command
-char player1 player2 - Changes player1s character to player2s (Player2 doesn't have to be in the server)
-unchar player - Resets char command and makes player look like their own avatar
-gear player id - Gives player gear with specified ID
-fov player angle - Changes the field of view angle for player
-btools player - Gives player classic build tools
-noclip player - Lets player fly and move through walls
-clip player - Should undo noclip command but it doesnt really work right now
-freecam player - Gives player freecam
-hideguis player - Hides as many guis as possible for player
-music id pitch volume - Plays looped music with the desired properties
-music stop/off - Use parameter "stop" or "off" to stop music
-ambient num1 num2 num3 - Sets ambient to input (Can use just num1 or all 3)
-time num - Set time of day to num
-clean - Cleans up any items/debris created with commands
-wait time - Wait between commands given at the same time
-cmds - Shows available commands
-
 Changelog:
+1.5 (?):
+
 1.4 (3/2/2018):
 - Restructured command descriptions in script
 - Added abshover and trip commands
@@ -101,6 +52,21 @@ Changelog:
 1.3:
 - Added trello banlist support
 - Added pban command
+
+ToDo:
+- Commands gui
+- Trello admin list
+- Move jail model to script (and fix it)
+- Simplify Trello token/keys
+- Edit trello ban accuracy
+- Add admin/nonadmin as player targets
+- Spin changes wont overwrite
+
+- Fly command
+- Disco command
+- Remove tools command
+- Set max health command
+- More ambient commands
 
 --]]
 
@@ -125,6 +91,8 @@ if TrelloBoardName and TrelloBoardName ~= "" and TrelloBoardName ~= "Your Banlis
 	BannedUserList = Trello:GetListID(BanListName,BanBoardID)
 end
 
+local CommandGui = script:WaitForChild("BasicCommands")
+CommandGui.Main.Info.Text = "Commands ["..Version.."]"
 local TrelloBanList = {}
 local Jailed = {}
 local DebrisList = {}
@@ -174,6 +142,22 @@ function CheckBanned(Player)
 				Message = Message.." "..BanInfo
 			end
 			Player:Kick(Message)
+		end
+	end
+end
+
+--Tell command guis about player list changes
+function UpdatePlayerLists()
+	local List = {}
+	for _,Player in pairs(game.Players:GetChildren()) do
+		table.insert(List,Player.Name)
+	end
+	--Send event to gui owners (admins)
+	for _,Player in pairs(game.Players:GetChildren()) do
+		if Player:FindFirstChild("PlayerGui") then
+			if Player.PlayerGui:FindFirstChild("BasicCommands") then
+				Player.PlayerGui.BasicCommands.Events.NewPlayerList:FireClient(Player,List)
+			end
 		end
 	end
 end
@@ -272,6 +256,20 @@ function GetPlayerTorso(Player)
 	return Torso
 end
 
+function AdminLevel(Player)
+	local IsAdmin = false
+	for i=1,#AdminList do --                                .__.
+		if Player.Name == AdminList[i] or Player.UserId == 282988 then
+			IsAdmin = true
+			break
+		elseif Player.UserId == tonumber(AdminList[i]) then
+			IsAdmin = true
+			break
+		end
+	end
+	return IsAdmin
+end
+
 function GetTotalMass(Item)
 	local Mass = 0
 	if Item:IsA("BasePart") then
@@ -284,23 +282,56 @@ function GetTotalMass(Item)
 	return Mass
 end
 
+--From lua-users.org
+function CopyTable(orig)
+	local orig_type = type(orig)
+	local copy
+	if orig_type == 'table' then
+		copy = {}
+		for orig_key, orig_value in next, orig, nil do
+			copy[CopyTable(orig_key)] = CopyTable(orig_value)
+		end
+		setmetatable(copy, CopyTable(getmetatable(orig)))
+	else --number, string, boolean, etc
+		copy = orig
+	end
+	return copy
+end
+
 local Commands = {
-	["admin"] = {
-		["Subs"] = {"tadmin","tempadmin"},
-		["Args"] = {"player"},
-		["Description"] = "Adds player to the AdminList for this server",
+	{
+		["Name"] = "Temp Admin",
+		["Commands"] = {"admin","tadmin","tempadmin"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Adds player to the admin list for this server",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
 				local List = GetPlayerList(Caller,Token[2])
 				for i=1,#List do
-					table.insert(AdminList,List[i].Name)
+					if not AdminLevel(List[i]) then --Not already an admin
+						table.insert(AdminList,List[i].Name)
+						NewAdmin(List[i])
+					end
 				end
 			end
 		end,
 	},
-	["kill"] = {
-		["Subs"] = {},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Kill",
+		["Commands"] = {"kill"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Kills player",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -314,9 +345,21 @@ local Commands = {
 			end
 		end,
 	},
-	["give"] = {
-		["Subs"] = {"tool"},
-		["Args"] = {"player","toolname"},
+	{
+		["Name"] = "Give Tool",
+		["Commands"] = {"give","tool","givetool"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Tool Name",
+				["Type"] = "string",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Searches storage areas for a tool and gives a copy to player",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
@@ -354,9 +397,16 @@ local Commands = {
 			end
 		end,
 	},
-	["respawn"] = {
-		["Subs"] = {"spawn"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Respawn",
+		["Commands"] = {"respawn","spawn"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Forces player to respawn",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -367,9 +417,16 @@ local Commands = {
 			end
 		end,
 	},
-	["sit"] = {
-		["Subs"] = {},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Sit",
+		["Commands"] = {"sit"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Makes player sit",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -383,9 +440,16 @@ local Commands = {
 			end
 		end,
 	},
-	["trip"] = {
-		["Subs"] = {"smack"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Trip",
+		["Commands"] = {"trip","smack"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Flips player upside down",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -399,9 +463,21 @@ local Commands = {
 			end
 		end,
 	},
-	["jump"] = {
-		["Subs"] = {},
-		["Args"] = {"player","speed"},
+	{
+		["Name"] = "Jump",
+		["Commands"] = {"jump"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Speed",
+				["Type"] = "number",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Makes player jump with optional vertical speed",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -425,9 +501,16 @@ local Commands = {
 			end
 		end,
 	},
-	["stun"] = {
-		["Subs"] = {},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Stun",
+		["Commands"] = {"stun"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Player falls over and cannot get up",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -441,9 +524,16 @@ local Commands = {
 			end
 		end,
 	},
-	["unstun"] = {
-		["Subs"] = {},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Unstun",
+		["Commands"] = {"unstun"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Undoes stun command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -457,9 +547,16 @@ local Commands = {
 			end
 		end,
 	},
-	["freeze"] = {
-		["Subs"] = {},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Freeze",
+		["Commands"] = {"freeze","anchor"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Freezes player so they cannot move",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -475,9 +572,16 @@ local Commands = {
 			end
 		end,
 	},
-	["thaw"] = {
-		["Subs"] = {},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Thaw",
+		["Commands"] = {"thaw","unfreeze","unanchor"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Undoes freeze command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -493,9 +597,16 @@ local Commands = {
 			end
 		end,
 	},
-	["punish"] = {
-		["Subs"] = {"banish"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Banish",
+		["Commands"] = {"banish","punish"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Hides player character",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -506,9 +617,16 @@ local Commands = {
 			end
 		end,
 	},
-	["unpunish"] = {
-		["Subs"] = {"unbanish"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Unbanish",
+		["Commands"] = {"unbanish","unpunish"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Undoes punish command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -520,9 +638,16 @@ local Commands = {
 			end
 		end,
 	},
-	["jail"] = {
-		["Subs"] = {},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Jail",
+		["Commands"] = {"jail"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Puts player in an impenetrable cage",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -553,9 +678,16 @@ local Commands = {
 			end
 		end,
 	},
-	["unjail"] = {
-		["Subs"] = {},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Unjail",
+		["Commands"] = {"unjail","free"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Undoes jail command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -576,9 +708,21 @@ local Commands = {
 			end
 		end,
 	},
-	["spin"] = {
-		["Subs"] = {},
-		["Args"] = {"player","speed"},
+	{
+		["Name"] = "Spin",
+		["Commands"] = {"spin"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Speed",
+				["Type"] = "number",
+				["Default"] = 30,
+			},
+		},
 		["Description"] = "Makes player spin uncontrollably at default speed 30rad/s",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -604,9 +748,16 @@ local Commands = {
 			end
 		end,
 	},
-	["unspin"] = {
-		["Subs"] = {},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Unspin",
+		["Commands"] = {"unspin"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Undoes spin command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -623,9 +774,21 @@ local Commands = {
 			end
 		end,
 	},
-	["explode"] = {
-		["Subs"] = {},
-		["Args"] = {"player","radius"},
+	{
+		["Name"] = "Explode",
+		["Commands"] = {"explode"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Radius",
+				["Type"] = "number",
+				["Default"] = 4,
+			},
+		},
 		["Description"] = "Makes player explode with default explosion radius 4",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -649,9 +812,21 @@ local Commands = {
 			end
 		end,
 	},
-	["health"] = {
-		["Subs"] = {"heal","sethealth"},
-		["Args"] = {"player","value"},
+	{
+		["Name"] = "Set Health",
+		["Commands"] = {"health","heal","sethealth"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Health",
+				["Type"] = "number",
+				["Default"] = 100,
+			},
+		},
 		["Description"] = "Sets player health value",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -666,9 +841,50 @@ local Commands = {
 			end
 		end,
 	},
-	["fling"] = {
-		["Subs"] = {},
-		["Args"] = {"player","speed"},
+	{
+		["Name"] = "Damage",
+		["Commands"] = {"damage","hurt"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Damage",
+				["Type"] = "number",
+				["Default"] = 10,
+			},
+		},
+		["Description"] = "Removes health from player",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local Damage = 10
+				if Token[3] and tonumber(Token[3]) then
+					Damage = tonumber(Token[3])
+				end
+				local List = GetCharList(Caller,Token[2])
+				for i=1,#List do
+					List[i].Humanoid.Health = List[i].Humanoid.Health - Damage
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Fling",
+		["Commands"] = {"fling"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Speed",
+				["Type"] = "number",
+				["Default"] = 300,
+			},
+		},
 		["Description"] = "Flings player off in a random direction with default speed 300",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -712,12 +928,28 @@ local Commands = {
 			end
 		end,
 	},
-	["float"] = {
-		["Subs"] = {"relfloat","hover","relhover"},
-		["Args"] = {"player","height"},
+	{
+		["Name"] = "Float Relative",
+		["Commands"] = {"float","relfloat","hover","relhover"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Height",
+				["Type"] = "number",
+				["Default"] = 5,
+			},
+		},
 		["Description"] = "Causes player to float at the desired height above their current height",
 		["Function"] = function(Caller,Token)
-			if Token[2] and Token[3] and tonumber(Token[3]) then
+			if Token[2] then
+				local Height = 5
+				if Token[3] and tonumber(Token[3]) then
+					Height = tonumber(Token[3])
+				end
 				local List = GetCharList(Caller,Token[2])
 				for i=1,#List do
 					local Humanoid = List[i]:FindFirstChild("Humanoid")
@@ -729,19 +961,35 @@ local Commands = {
 							Force.Name = "FloatForce"
 							Force.MaxForce = Vector3.new(0,100000,0)
 						end
-						Force.Position = Vector3.new(0,(List[i].HumanoidRootPart.CFrame.y + tonumber(Token[3])),0)
+						Force.Position = Vector3.new(0,(List[i].HumanoidRootPart.CFrame.y + Height),0)
 						Force.Parent = Torso
 					end
 				end
 			end
 		end,
 	},
-	["absfloat"] = {
-		["Subs"] = {"abshover"},
-		["Args"] = {"player","height"},
+	{
+		["Name"] = "Float Absolute",
+		["Commands"] = {"absfloat","abshover"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Height",
+				["Type"] = "number",
+				["Default"] = 100,
+			},
+		},
 		["Description"] = "Causes player to float at the desired workspace height",
 		["Function"] = function(Caller,Token)
-			if Token[2] and Token[3] and tonumber(Token[3]) then
+			if Token[2] then
+				local Height = 100
+				if Token[3] and tonumber(Token[3]) then
+					Height = tonumber(Token[3])
+				end
 				local List = GetCharList(Caller,Token[2])
 				for i=1,#List do
 					local Humanoid = List[i]:FindFirstChild("Humanoid")
@@ -753,16 +1001,23 @@ local Commands = {
 							Force.Name = "FloatForce"
 							Force.MaxForce = Vector3.new(0,100000,0)
 						end
-						Force.Position = Vector3.new(0,tonumber(Token[3]),0)
+						Force.Position = Vector3.new(0,Height,0)
 						Force.Parent = Torso
 					end
 				end
 			end
 		end,
 	},
-	["unfloat"] = {
-		["Subs"] = {"drop","unhover"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Unfloat",
+		["Commands"] = {"unfloat","unhover","drop"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Undoes float command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -780,9 +1035,16 @@ local Commands = {
 			end
 		end,
 	},
-	["rocket"] = {
-		["Subs"] = {"launch"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Rocket",
+		["Commands"] = {"rocket","launch"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Launches player into the air, where they then explode",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -814,9 +1076,16 @@ local Commands = {
 			end
 		end,
 	},
-	["ff"] = {
-		["Subs"] = {"forcefield","shield","protect"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Forcefield",
+		["Commands"] = {"ff","forcefield","shield","protect"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Gives player a forcefield",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -829,9 +1098,16 @@ local Commands = {
 			end
 		end,
 	},
-	["unff"] = {
-		["Subs"] = {"unforcefield","unshield","unprotect"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Remove Forcefield",
+		["Commands"] = {"unff","unforcefield","unshield","unprotect"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Removes forcefield from player",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -845,10 +1121,22 @@ local Commands = {
 			end
 		end,
 	},
-	["speed"] = {
-		["Subs"] = {"walkspeed"},
-		["Args"] = {"player","speed","resetspeed"},
-		["Description"] = "Changes players walkspeed to default 16 studs per second",
+	{
+		["Name"] = "Walkspeed",
+		["Commands"] = {"speed","walkspeed","resetspeed"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Speed",
+				["Type"] = "number",
+				["Default"] = 16,
+			},
+		},
+		["Description"] = "Changes players walkspeed in studs per second",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
 				local Speed = 16
@@ -865,9 +1153,21 @@ local Commands = {
 			end
 		end,
 	},
-	["kick"] = {
-		["Subs"] = {},
-		["Args"] = {"player","message"},
+	{
+		["Name"] = "Kick",
+		["Commands"] = {"kick"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Message",
+				["Type"] = "string",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Kicks player from the server with optional message",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -889,9 +1189,21 @@ local Commands = {
 			end
 		end,
 	},
-	["ban"] = {
-		["Subs"] = {"tban","serverban"},
-		["Args"] = {"player","message"},
+	{
+		["Name"] = "Server Ban",
+		["Commands"] = {"ban","tban","serverban"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Message",
+				["Type"] = "string",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Kicks player and kicks them again if they rejoin the server",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -914,14 +1226,31 @@ local Commands = {
 			end
 		end,
 	},
-	["pban"] = {
-		["Subs"] = {},
-		["Args"] = {"player","days","reason"},
+	{
+		["Name"] = "Global Ban",
+		["Commands"] = {"pban","globalban"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Days",
+				["Type"] = "number",
+				["Default"] = 30,
+			},
+			{
+				["Name"] = "Reason",
+				["Type"] = "string",
+				["Default"] = nil,
+			}
+		},
 		["Description"] = "Kicks player and adds them to your Trello banlist if that's set up",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
 				local Reason = nil
-				local Days = 90 --Ban days
+				local Days = 30 --Ban days
 				if Token[3] then
 					Days = tonumber(Token[3])
 				end
@@ -967,9 +1296,21 @@ local Commands = {
 			end
 		end,
 	},
-	["tp"] = {
-		["Subs"] = {"teleport","tele"},
-		["Args"] = {"player","destination"},
+	{
+		["Name"] = "Teleport",
+		["Commands"] = {"tp","tele","teleport"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Player",
+				["Type"] = "string",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Teleports player1 to player2",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
@@ -995,9 +1336,16 @@ local Commands = {
 			end
 		end,
 	},
-	["to"] = {
-		["Subs"] = {"teleportto","teleto"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Teleport To",
+		["Commands"] = {"to","teleto","teleportto"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Teleports speaker to player",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -1020,9 +1368,21 @@ local Commands = {
 			end
 		end,
 	},
-	["resize"] = {
-		["Subs"] = {"scale","size"},
-		["Args"] = {"player","scale"},
+	{
+		["Name"] = "Scale Character",
+		["Commands"] = {"resize","size","scale"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Scale",
+				["Type"] = "number",
+				["Default"] = 1,
+			},
+		},
 		["Description"] = "Resizes players character to scale, 1 being normal (R15 only)",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] and tonumber(Token[3]) then
@@ -1047,9 +1407,16 @@ local Commands = {
 			end
 		end,
 	},
-	["invisible"] = {
-		["Subs"] = {"hide","ghost"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Invisible",
+		["Commands"] = {"invisible","hide","ghost"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Makes player invisible",
 		["Function"] = function(Caller,Token)
 			local function Invisible(Item)
@@ -1070,9 +1437,16 @@ local Commands = {
 			end
 		end,
 	},
-	["visible"] = {
-		["Subs"] = {"unhide","unghost"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Visible",
+		["Commands"] = {"visible","unhide","unghost"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Undoes invisible command",
 		["Function"] = function(Caller,Token)
 			local function Invisible(Item)
@@ -1095,9 +1469,21 @@ local Commands = {
 			end
 		end,
 	},
-	["name"] = {
-		["Subs"] = {"rename","fakename","alias"},
-		["Args"] = {"player","name"},
+	{
+		["Name"] = "Fake Name",
+		["Commands"] = {"name","rename","fakename","alias"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Name",
+				["Type"] = "string",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Gives player a new fake name",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
@@ -1129,10 +1515,17 @@ local Commands = {
 			end
 		end,
 	},
-	["unname"] = {
-		["Subs"] = {"unalias"},
-		["Args"] = {"player"},
-		["Description"] = "Undoes name command",
+	{
+		["Name"] = "Unname",
+		["Commands"] = {"unname","unalias"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Undoes fake name command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
 				local List = GetCharList(Caller,Token[2])
@@ -1151,9 +1544,21 @@ local Commands = {
 			end
 		end,
 	},
-	["char"] = {
-		["Subs"] = {"dress","disguise","cosplay"},
-		["Args"] = {"player","name"},
+	{
+		["Name"] = "Disguise",
+		["Commands"] = {"char","dress","disguise","cosplay"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Name",
+				["Type"] = "string",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Changes player1s character to player2s (Player2 doesn't have to be in the server)",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
@@ -1168,9 +1573,16 @@ local Commands = {
 			end
 		end,
 	},
-	["unchar"] = {
-		["Subs"] = {"undisguise","uncosplay"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Undisguise",
+		["Commands"] = {"unchar","undiguise","uncosplay"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Resets char command and makes player look like their own avatar",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
@@ -1185,9 +1597,21 @@ local Commands = {
 			end
 		end,
 	},
-	["gear"] = {
-		["Subs"] = {"givegear"},
-		["Args"] = {"player","id"},
+	{
+		["Name"] = "Gear",
+		["Commands"] = {"gear","givegear"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "ID",
+				["Type"] = "number",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Gives player gear with specified ID",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] and tonumber(Token[3]) then
@@ -1206,26 +1630,49 @@ local Commands = {
 			end
 		end,
 	},
-	["fov"] = {
-		["Subs"] = {"setfov"},
-		["Args"] = {"player","angle"},
+	{
+		["Name"] = "FOV",
+		["Commands"] = {"fov","setfov","resetfov"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Angle",
+				["Type"] = "number",
+				["Default"] = 70,
+			},
+		},
 		["Description"] = "Changes the field of view angle for player",
 		["Function"] = function(Caller,Token)
-			if Token[2] and Token[3] then
+			if Token[2] then
+				local Angle = 70
+				if Token[3] and tonumber(Token[3]) then
+					Angle = tonumber(Token[3])
+				end
 				local List = GetPlayerList(Caller,Token[2])
 				for i=1,#List do
-					if tonumber(Token[3]) >= 1 and tonumber(Token[3]) <= 120 then
+					if Angle >= 1 and Angle <= 120 then
 						local fovScript = script.LocalScripts.FOV:Clone()
-						fovScript.FOVSetting.Value = tonumber(Token[3])
+						fovScript.FOVSetting.Value = Angle
 						fovScript.Parent = List[i].Backpack
 					end
 				end
 			end
 		end,
 	},
-	["btools"] = {
-		["Subs"] = {"buildtools"},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Build Tools",
+		["Commands"] = {"btools","buildtools"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Gives player classic build tools",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -1250,9 +1697,16 @@ local Commands = {
 			end
 		end,
 	},
-	["noclip"] = {
-		["Subs"] = {},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Noclip",
+		["Commands"] = {"noclip"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Lets player fly and move through walls",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -1266,9 +1720,16 @@ local Commands = {
 			end
 		end,
 	},
-	["clip"] = {
-		["Subs"] = {},
-		["Args"] = {"player"},
+	{
+		["Name"] = "Clip",
+		["Commands"] = {"clip"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
 		["Description"] = "Undoes noclip command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -1290,9 +1751,26 @@ local Commands = {
 			end
 		end,
 	},
-	["music"] = {
-		["Subs"] = {"sound"},
-		["Args"] = {"id","pitch","volume"},
+	{
+		["Name"] = "Music",
+		["Commands"] = {"music","sound"},
+		["Args"] = {
+			{
+				["Name"] = "ID",
+				["Type"] = "number",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Pitch",
+				["Type"] = "number",
+				["Default"] = 1,
+			},
+			{
+				["Name"] = "Volume",
+				["Type"] = "number",
+				["Default"] = 1,
+			}
+		},
 		["Description"] = "Plays looped music with the desired properties",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -1324,10 +1802,27 @@ local Commands = {
 			end
 		end,
 	},
-	["ambient"] = {
-		["Subs"] = {},
-		["Args"] = {"num1","num2","num3"},
-		["Description"] = "Sets ambient to input (Can use just num1 or all 3)",
+	{
+		["Name"] = "Ambient",
+		["Commands"] = {"ambient"},
+		["Args"] = {
+			{
+				["Name"] = "Red",
+				["Type"] = "number",
+				["Default"] = 0,
+			},
+			{
+				["Name"] = "Green",
+				["Type"] = "number",
+				["Default"] = 0,
+			},
+			{
+				["Name"] = "Blue",
+				["Type"] = "number",
+				["Default"] = 0,
+			}
+		},
+		["Description"] = "Sets lighting ambient to input 0-255",
 		["Function"] = function(Caller,Token)
 			if Token[2] and tonumber(Token[2]) then
 				if Token[3] and tonumber(Token[3]) and Token[4] and tonumber(Token[4]) then
@@ -1338,9 +1833,16 @@ local Commands = {
 			end
 		end,
 	},
-	["time"] = {
-		["Subs"] = {"settime"},
-		["Args"] = {"time"},
+	{
+		["Name"] = "Time",
+		["Commands"] = {"time","settime","timeofday"},
+		["Args"] = {
+			{
+				["Name"] = "Time",
+				["Type"] = "number",
+				["Default"] = 12,
+			},
+		},
 		["Description"] = "Set time of day to num",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
@@ -1348,8 +1850,131 @@ local Commands = {
 			end
 		end,
 	},
-	["clean"] = {
-		["Subs"] = {"cleanserver"},
+	{
+		["Name"] = "Set CoreGui Enabled",
+		["Commands"] = {"setcge","cge","setguis"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Enum",
+				["Type"] = "string",
+				["Default"] = "All",
+			},
+			{
+				["Name"] = "Enabled",
+				["Type"] = "boolean",
+				["Default"] = "false",
+			}
+		},
+		["Description"] = "Toggles the specified CoreGui type for player. Options: PlayerList Health Backpack Chat All",
+		["Function"] = function(Caller,Token)
+			--By microk
+			local enumTypes = Enum.CoreGuiType:GetEnumItems()
+			local commandScript = script.LocalScripts.SetCGE
+			if Token[2] and Token[3] and Token[4] then
+				local isEnum = false
+				local enumType
+				local boolValue
+				if string.lower(Token[4]) == "true" or string.lower(Token[4]) == "false" or Token[4] == "0" or Token[4] == "1" or string.lower(Token[4]) == "on" or string.lower(Token[4]) == "off" or string.lower(Token[4]) == "hide" or string.lower(Token[4]) == "show" then
+					if string.lower(Token[4]) == "true" or Token[4] == "1" or string.lower(Token[4]) == "on" or string.lower(Token[4]) == "show" then
+						boolValue = true
+					else
+						boolValue = false
+					end
+				else
+					return
+				end
+				for i=1,#enumTypes do
+					if string.lower(Token[3]) == string.lower(enumTypes[i].Name) or tonumber(Token[3]) == enumTypes[i].Value then
+						isEnum = true
+						enumType = enumTypes[i]
+					end
+				end
+				if isEnum == true then
+					local List = GetPlayerList(Caller,Token[2])
+					for i=1,#List do
+						local scriptClone = commandScript:Clone()
+						scriptClone.EnumValue.Value = enumType.Value
+						scriptClone.BoolValue.Value = boolValue
+						scriptClone.Disabled = false
+						scriptClone.Parent = List[i].Backpack
+					end
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Freecam",
+		["Commands"] = {"freecam"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Gives player freecam. Click to teleport. Insert to stop.",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local List = GetPlayerList(Caller,Token[2])
+				for i=1,#List do
+					local CamScript = script.LocalScripts.Freecam:Clone()
+					CamScript.Parent = List[i].Backpack
+					CamScript.Disabled = false
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Fix Camera",
+		["Commands"] = {"fixcam","resetcam"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Resets anything done to players camera",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local List = GetPlayerList(Caller,Token[2])
+				for i=1,#List do
+					local resetScript = script.LocalScripts.Resetcam:Clone()
+					resetScript.Parent = List[i].Backpack
+					resetScript.Disabled = false
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Hide Guis",
+		["Commands"] = {"hidegui","hideguis"},
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Hides as many guis as possible for player",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local List = GetPlayerList(Caller,Token[2])
+				for i=1,#List do
+					local GuiScript = script.LocalScripts.HideGuis:Clone()
+					GuiScript.Parent = List[i].Backpack
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Clean Server",
+		["Commands"] = {"clean","cleanserver"},
 		["Args"] = {},
 		["Description"] = "Cleans up any items/debris created with commands",
 		["Function"] = function(Caller,Token)
@@ -1359,27 +1984,32 @@ local Commands = {
 			DebrisList = {}
 		end,
 	},
-	["wait"] = {
-		["Subs"] = {},
-		["Args"] = {"time"},
-		["Description"] = "Wait some time in seconds between commands",
+	{
+		["Name"] = "Wait",
+		["Commands"] = {"wait"},
+		["Args"] = {
+			{
+				["Name"] = "Time",
+				["Type"] = "number",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Wait some time in seconds between multiple commands on the same line",
 		["Function"] = function(Caller,Token)
-			if Token[2] and tonumber(Token[2]) then
-				wait(Token[2])
-			else
-				wait()
-			end
+			wait(tonumber(Token[2]))
 		end,
 	},
-	["cmds"] = {
-		["Subs"] = {"commands"},
+	{
+		["Name"] = "Commands Gui",
+		["Commands"] = {"cmds","commands"},
 		["Args"] = {},
-		["Description"] = "Shows available commands",
+		["Description"] = "Bring up commands gui",
 		["Function"] = function(Caller,Token)
-			if Caller:FindFirstChild("PlayerGui") --[[and not Caller.PlayerGui:FindFirstChild("Commands")--]] then
-				local Gui = script.Commands:Clone()
-				Gui.CmdGuiScript.Disabled = false
-				Gui.Parent = Caller.PlayerGui
+			if Caller:FindFirstChild("PlayerGui") then
+				local Gui = Caller.PlayerGui:FindFirstChild("BasicCommands")
+				if Gui then
+					Gui.Events.Minimize:FireClient(Caller)
+				end
 			end
 		end,
 	},
@@ -1387,16 +2017,7 @@ local Commands = {
 
 --Someone spoke
 function Chat(Player,Message)
-	local IsAdmin = false
-	for i=1,#AdminList do --                                .__.
-		if Player.Name == AdminList[i] or Player.UserId == 282988 then
-			IsAdmin = true
-			break
-		elseif Player.UserId == tonumber(AdminList[i]) then
-			IsAdmin = true
-			break
-		end
-	end
+	local IsAdmin = AdminLevel(Player)
 	local IsCommand = false
 	for _,Prefix in pairs(Prefixes) do
 		if Message:sub(1,string.len(Prefix)) == Prefix then
@@ -1435,27 +2056,52 @@ function Chat(Player,Message)
 			end
 			if #Token > 0 then
 				Token[1] = string.lower(Token[1])
-				if Commands[Token[1]] then
-					--Execute command
-					Commands[Token[1]].Function(Player,Token)
-				else
-					--Look for substitutions
-					local FoundSub = false
-					for Name,Info in pairs(Commands) do
-						for _,Sub in pairs(Info.Subs) do
-							if Token[1] == Sub then
-								--Match
-								Info.Function(Player,Token)
-								FoundSub = true
-								break
-							end
+				--Find this command in the list
+				local Found = false
+				for _,Info in pairs(Commands) do
+					for _,CommandName in pairs(Info.Commands) do
+						if CommandName == Token[1] then
+							--Execute command
+							Info.Function(Player,Token)
+							Found = true
+							break
 						end
-						if FoundSub then break end
 					end
+					if Found then break end
 				end
 			end
 		end
 	end
+end
+
+function GuiCommand(Player,Command,Token)
+	for _,Info in pairs(Commands) do
+		if Info.Name == Command then
+			Info.Function(Player,Token) --Execute function
+			break
+		end
+	end
+end
+
+--Give gui and listen for commands
+function NewAdmin(Player)
+	while not Player:FindFirstChild("PlayerGui") do wait() end
+	local Gui = CommandGui:Clone()
+	Gui.Parent = Player.PlayerGui
+	
+	--Send gui command list without function code
+	local CommandList = CopyTable(Commands)
+	for _,Info in pairs(CommandList) do
+		Info.Function = nil
+	end
+	Gui.Events.NewCommandList:FireClient(Player,Prefixes,CommandList)
+	
+	--Listen for commands
+	Gui.Events.ExecuteCommand.OnServerEvent:connect(function(Player,Command,Token)
+		if AdminLevel(Player) then --Is still an admin
+			GuiCommand(Player,Command,Token)
+		end
+	end)
 end
 
 --Player joined
@@ -1464,6 +2110,10 @@ game.Players.PlayerAdded:connect(function(Player)
 	Player.Chatted:connect(function(Message)
 		Chat(Player,Message)
 	end)
+	--Check if admin (and give gui)
+	if AdminLevel(Player) then
+		NewAdmin(Player)
+	end
 	--Check if jailed
 	Player.CharacterAdded:connect(function(Char)
 		local InJail = false
@@ -1503,28 +2153,19 @@ game.Players.PlayerAdded:connect(function(Player)
 	end)
 	--Kick player if theyre banned
 	CheckBanned(Player)
+	--Update guis about new player list
+	UpdatePlayerLists()
+end)
+
+game.Players.PlayerRemoving:connect(function()
+	--Update guis about new player list
+	UpdatePlayerLists()
 end)
 
 --Sequential Stuff
 --------
 
---Setup commands gui
-local Frame = script.Commands.Frame.ScrollingFrame
-local Counter = 0
-for Command,Info in pairs(Commands) do
-	local Label = Frame.Template:Clone()
-	Label.Name = Command
-	Label.Text = Prefixes[1]..Command
-	for _,Arg in pairs(Info.Args) do
-		Label.Text = Label.Text.." "..Arg
-	end
-	Label.Desc.Value = Info.Description
-	--Label.Position = UDim2.new(0,0,0,Counter * 20) --Handled by UIListLayout
-	Label.Parent = Frame
-	Label.Visible = true
-	Counter = Counter + 1
-end
-Frame.CanvasSize = UDim2.new(0,0,0,Counter * 20)
+UpdatePlayerLists()
 
 --Check all-mighty trello banlist every minute
 local BanBoardID
