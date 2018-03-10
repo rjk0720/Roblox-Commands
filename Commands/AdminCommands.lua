@@ -71,10 +71,8 @@ ToDo:
 - Simplify Trello token/keys
 - Edit trello ban accuracy
 - Add admin/nonadmin/random/etc as player targets
-- Spin changes wont overwrite
 - Custom command hotkey?
 - Add gui shortcuts for undo-commands
-- Admin gui scrollframe canvas sizes
 - Built-in music list
 ToDo Commands:
 - Fly command
@@ -82,6 +80,7 @@ ToDo Commands:
 - Remove tools command
 - Set max health command
 - More ambient commands
+- Bunch more commands
 
 --]]
 
@@ -806,11 +805,11 @@ local Commands = {
 						if not Spinner then
 							Spinner = Instance.new("BodyAngularVelocity")
 							Spinner.Name = "Spinner"
-							Spinner.MaxTorque = Vector3.new(0,math.huge,0)
-							Spinner.AngularVelocity = Vector3.new(0,Speed,0)
-							Spinner.P = 6000
-							Spinner.Parent = Torso
 						end
+						Spinner.MaxTorque = Vector3.new(0,math.huge,0)
+						Spinner.AngularVelocity = Vector3.new(0,Speed,0)
+						Spinner.P = 6000
+						Spinner.Parent = Torso
 					end
 				end
 			end

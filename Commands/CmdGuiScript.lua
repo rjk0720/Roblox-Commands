@@ -2,18 +2,27 @@ local TweenService = game:GetService("TweenService")
 local InputService = game:GetService("UserInputService")
 
 local LocalPlayer = game.Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 local Gui = script.Parent
 local Main = Gui:WaitForChild("Main")
 local Events = Gui:WaitForChild("Events")
 
+local MinSizeX = 500
+local MinSizeY = 300
+
 local CurrentCommand
-local TargetType = "none" --Unused
 local Commands = {}
 local Prefixes = {}
 local Players = {}
 local Minimized = false
 local ScreenPos = UDim2.new(0.5,0,0.5,0)
-local Alt = false
+local Shift = false
+local Ctrl = false
+local Resizing = false
+local SizeStartX
+local SizeStartY
+local MouseStartX
+local MouseStartY
 
 local TweenConfig = TweenInfo.new(
 	0.5, --Time
@@ -67,6 +76,7 @@ function SelectCommand(TargetEntry)
 		end
 	end
 	
+	local Container = Main.Description.ScrollingFrame
 	if TargetEntry then
 		--Find command in Commands
 		for _,Info in pairs(Commands) do
@@ -76,14 +86,22 @@ function SelectCommand(TargetEntry)
 				for _,Command in pairs(Info.Commands) do
 					CommandText = CommandText..Prefixes[1]..Command.." "
 				end
-				Main.Description.ScrollingFrame.Commands.Text = CommandText
-				Main.Description.ScrollingFrame.Description.Text = Info.Description
+				Container.Level.Text = Info.Level
+				Container.LevelLabel.Visible = true
+				Container.Level.Visible = true
+				Container.Commands.Text = CommandText
+				Container.Description.Text = Info.Description
+				Container.CanvasSize = UDim2.new(0,0,0,
+					Container.Description.Position.Y.Offset + Container.Description.TextBounds.Y
+				)
 			end
 		end
 	else
 		--Nothing selected
-		Main.Description.ScrollingFrame.Commands.Text = "Select a command"
-		Main.Description.ScrollingFrame.Description.Text = ""
+		Container.LevelLabel.Visible = false
+		Container.Level.Visible = false
+		Container.Commands.Text = "Select a command"
+		Container.Description.Text = ""
 	end
 end
 
@@ -105,6 +123,14 @@ function UpdatePlayerList()
 		end
 	end
 	
+	--Playerlist CanvasSize
+	local Counter = 0
+	for Player,Selected in pairs(Players) do
+		Counter = Counter + 1
+	end
+	print(Counter.." players")
+	Container.CanvasSize = UDim2.new(0,0,0,Counter * Container.Template.Size.Y.Offset)
+	
 	--Check/uncheck boxes
 	for Player,Selected in pairs(Players) do
 		local Entry = Container:FindFirstChild(Player)
@@ -118,7 +144,6 @@ function UpdatePlayerList()
 			
 			--Box clicked
 			Entry.CheckBox.MouseButton1Click:connect(function()
-				TargetType = "custom"
 				local NewSelected = not Players[Player]
 				Players[Player] = NewSelected
 				if NewSelected then
@@ -177,6 +202,7 @@ function UpdateArguments()
 	else
 		Container.NoArgs.Visible = true
 	end
+	Container.CanvasSize = UDim2.new(0,0,0,Counter * Container.Template.Size.Y.Offset)
 end
 
 function UpdateFilter(Input)
@@ -318,26 +344,33 @@ end)
 
 --Player quick selection buttons
 Main.PlayerList.All.MouseButton1Click:connect(function()
-	TargetType = "all"
 	for Player,Selected in pairs(Players) do
 		Players[Player] = true
 	end
 	UpdatePlayerList()
 end)
 Main.PlayerList.None.MouseButton1Click:connect(function()
-	TargetType = "none"
 	for Player,Selected in pairs(Players) do
 		Players[Player] = false
 	end
 	UpdatePlayerList()
 end)
 Main.PlayerList.Others.MouseButton1Click:connect(function()
-	TargetType = "others"
 	for Player,Selected in pairs(Players) do
 		if Player == LocalPlayer.Name then
 			Players[Player] = false
 		else
 			Players[Player] = true
+		end
+	end
+	UpdatePlayerList()
+end)
+Main.PlayerList.Me.MouseButton1Click:connect(function()
+	for Player,Selected in pairs(Players) do
+		if Player == LocalPlayer.Name then
+			Players[Player] = true
+		else
+			Players[Player] = false
 		end
 	end
 	UpdatePlayerList()
@@ -354,25 +387,65 @@ Main.Search.TextBox.FocusLost:connect(function(EnterPressed)
 		Main.Search.TextBox.Text = "Search"
 	end
 end)
+Main.Search.Reset.MouseButton1Click:connect(function()
+	Main.Search.TextBox.Text = "Search"
+	UpdateFilter()
+end)
 
 --Execute button
 Main.Button.Execute.MouseButton1Click:connect(function()
 	ExecuteCommand()
 end)
 
+--Resize dragger
+Main.Resize.MouseButton1Down:connect(function()
+	SizeStartX = Main.Size.X.Offset
+	SizeStartY = Main.Size.Y.Offset
+	MouseStartX = Mouse.X
+	MouseStartY = Mouse.Y
+	Resizing = true
+end)
+Main.Resize.MouseButton1Up:connect(function()
+	--Wont work if mouse is no longer over the button
+	Resizing = false
+end)
+--[[
+Main.InputEnded:connect(function()
+	--Bad workaround for above event
+	if Main.Size.X.Offset <= MinSizeX and Main.Size.Y.Offset <= MinSizeY then
+		Resizing = false
+	end
+end)
+--]]
+Mouse.Move:connect(function()
+	if Resizing then
+		local MouseChangeX = Mouse.X - MouseStartX
+		local MouseChangeY = Mouse.Y - MouseStartY
+		--local SizeX = math.clamp((SizeStartX + MouseChangeX),MinSizeX,MinSizeX*10)
+		--local SizeY = math.clamp((SizeStartY + MouseChangeY),MinSizeY,MinSizeY*10)
+		local SizeX = SizeStartX + MouseChangeX
+		local SizeY = SizeStartY + MouseChangeY
+		Main.Size = UDim2.new(0,SizeX,0,SizeY)
+	end
+end)
+
 --Keyboard input
 InputService.InputBegan:connect(function(Input,GameProcessedEvent)
-	if Input.KeyCode == Enum.KeyCode.LeftAlt or Input.KeyCode == Enum.KeyCode.RightAlt then
-		Alt = true
-	elseif Input.KeyCode == Enum.KeyCode.C then
-		if Alt then
+	if Input.KeyCode == Enum.KeyCode.LeftShift or Input.KeyCode == Enum.KeyCode.RightShift then
+		Shift = true
+	elseif Input.KeyCode == Enum.KeyCode.LeftControl or Input.KeyCode == Enum.KeyCode.RightControl then
+		Ctrl = true
+	elseif Input.KeyCode == Enum.KeyCode.Z then
+		if Shift and Ctrl then
 			ToggleMinimized()
 		end
 	end
 end)
 
 InputService.InputEnded:connect(function(Input,GameProcessedEvent)
-	if Input.KeyCode == Enum.KeyCode.LeftAlt or Input.KeyCode == Enum.KeyCode.RightAlt then
-		Alt = false
+	if Input.KeyCode == Enum.KeyCode.LeftShift or Input.KeyCode == Enum.KeyCode.RightShift then
+		Shift = false
+	elseif Input.KeyCode == Enum.KeyCode.LeftControl or Input.KeyCode == Enum.KeyCode.RightControl then
+		Ctrl = false
 	end
 end)
