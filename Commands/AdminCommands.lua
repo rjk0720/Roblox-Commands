@@ -4,9 +4,20 @@ local Version = "1.5 WIP"
 
 --Configuration
 --------
-local AdminList = {"Haggie125","Player1"} --Players who can use commands (UserIDs work too)
-local ScriptBanList = {} --Players who won't be allowed to join the game (Username or ID)(UserIDs are better)
-local Prefixes = {":","/","please ","sudo ","ok google ","okay google ","ok google, ","okay google, ","alexa ","alexa, ","hey siri ","hey siri, "} --Command prefixes
+
+--Players who can use commands (UserIDs work too)
+local AdminList = {
+	--Level 1 admins (All commands)
+	[1] = {"Haggie125","Player1"},
+	--Level 2 admins (All non-global commands)
+	[2] = {},
+	--Level 3 admins (Only fun commands)
+	[3] = {},
+}
+--Players who won't be allowed to join the game (Username or ID)(UserIDs are better)
+local ScriptBanList = {}
+--What you can start commands with
+local Prefixes = {":","/","please ","sudo ","ok google ","okay google ","ok google, ","okay google, ","alexa ","alexa, ","hey siri ","hey siri, "}
 
 --Optional Trello banlist
 --Follow the instructions in the TrelloAPI module script to set up your key/token
@@ -21,7 +32,7 @@ local BanInfo = ":D"
 --------
 --[[
 	
-Say :cmds or hit Alt-C to bring up the commands gui in-game
+Say :cmds or hit [Ctrl-Shift-Z] to bring up the commands gui in-game
 The commands gui will display everything you need to know about every available command
 
 Commands can be executed from the gui or spoken in chat. Examples:
@@ -41,7 +52,8 @@ Player targets are not case sensitive and can be:
 
 Changelog:
 1.5 (?):
-
+- Added commands gui
+- Added permission levels
 1.4 (3/2/2018):
 - Restructured command descriptions in script
 - Added abshover and trip commands
@@ -54,14 +66,17 @@ Changelog:
 - Added pban command
 
 ToDo:
-- Commands gui
 - Trello admin list
 - Move jail model to script (and fix it)
 - Simplify Trello token/keys
 - Edit trello ban accuracy
-- Add admin/nonadmin as player targets
+- Add admin/nonadmin/random/etc as player targets
 - Spin changes wont overwrite
-
+- Custom command hotkey?
+- Add gui shortcuts for undo-commands
+- Admin gui scrollframe canvas sizes
+- Built-in music list
+ToDo Commands:
 - Fly command
 - Disco command
 - Remove tools command
@@ -96,6 +111,43 @@ CommandGui.Main.Info.Text = "Commands ["..Version.."]"
 local TrelloBanList = {}
 local Jailed = {}
 local DebrisList = {}
+
+--Mainly from Kohls commands
+local MusicList = {
+	["caramell"] = 511342351,
+	["rick"] = 578934892,
+	["halo"] = 1034065,
+	["pokemon"] = 1372261,
+	["cursed"] = 1372257,
+	["extreme"] = 11420933,
+	["awaken"] = 27697277,
+	["alone"] = 27697392,
+	["mario"] = 1280470,
+	["choir"] = 1372258,
+	["chrono"] = 1280463,
+	["dotr"] = 11420922,
+	["entertain"] = 27697267,
+	["fantasy"] = 1280473,
+	["final"] = 1280414,
+	["emblem"] = 1372259,
+	["flight"] = 27697719,
+	["banjo"] = 27697298,
+	["gothic"] = 27697743,
+	["hiphop"] = 27697735,
+	["intro"] = 27697707,
+	["mule"] = 1077604,
+	["film"] = 27697713,
+	["nezz"] = 8610025,
+	["angel"] = 1372260,
+	["resist"] = 27697234,
+	["schala"] = 5985787,
+	["organ"] = 11231513,
+	["tunnel"] = 9650822,
+	["spanish"] = 5982975,
+	["starfox"] = 1372262,
+	["wind"] = 1015394,
+	["guitar"] = 5986151,
+}
 
 function CheckBanned(Player)
 	local function Check(Name)
@@ -257,17 +309,17 @@ function GetPlayerTorso(Player)
 end
 
 function AdminLevel(Player)
-	local IsAdmin = false
-	for i=1,#AdminList do --                                .__.
-		if Player.Name == AdminList[i] or Player.UserId == 282988 then
-			IsAdmin = true
-			break
-		elseif Player.UserId == tonumber(AdminList[i]) then
-			IsAdmin = true
-			break
+	local Level = nil
+	for Lvl,List in pairs(AdminList) do
+		for _,Entry in pairs(List) do
+			if Entry == Player.Name or tonumber(Entry) == Player.UserId then
+				Level = Lvl
+				break
+			end
 		end
+		if Level then break end
 	end
-	return IsAdmin
+	return Level
 end
 
 function GetTotalMass(Item)
@@ -302,6 +354,7 @@ local Commands = {
 	{
 		["Name"] = "Temp Admin",
 		["Commands"] = {"admin","tadmin","tempadmin"},
+		["Level"] = 1,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -325,6 +378,7 @@ local Commands = {
 	{
 		["Name"] = "Kill",
 		["Commands"] = {"kill"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -348,6 +402,7 @@ local Commands = {
 	{
 		["Name"] = "Give Tool",
 		["Commands"] = {"give","tool","givetool"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -400,6 +455,7 @@ local Commands = {
 	{
 		["Name"] = "Respawn",
 		["Commands"] = {"respawn","spawn"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -420,6 +476,7 @@ local Commands = {
 	{
 		["Name"] = "Sit",
 		["Commands"] = {"sit"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -443,6 +500,7 @@ local Commands = {
 	{
 		["Name"] = "Trip",
 		["Commands"] = {"trip","smack"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -466,6 +524,7 @@ local Commands = {
 	{
 		["Name"] = "Jump",
 		["Commands"] = {"jump"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -504,6 +563,7 @@ local Commands = {
 	{
 		["Name"] = "Stun",
 		["Commands"] = {"stun"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -527,6 +587,7 @@ local Commands = {
 	{
 		["Name"] = "Unstun",
 		["Commands"] = {"unstun"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -550,6 +611,7 @@ local Commands = {
 	{
 		["Name"] = "Freeze",
 		["Commands"] = {"freeze","anchor"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -575,6 +637,7 @@ local Commands = {
 	{
 		["Name"] = "Thaw",
 		["Commands"] = {"thaw","unfreeze","unanchor"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -600,6 +663,7 @@ local Commands = {
 	{
 		["Name"] = "Banish",
 		["Commands"] = {"banish","punish"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -620,6 +684,7 @@ local Commands = {
 	{
 		["Name"] = "Unbanish",
 		["Commands"] = {"unbanish","unpunish"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -641,6 +706,7 @@ local Commands = {
 	{
 		["Name"] = "Jail",
 		["Commands"] = {"jail"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -681,6 +747,7 @@ local Commands = {
 	{
 		["Name"] = "Unjail",
 		["Commands"] = {"unjail","free"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -711,6 +778,7 @@ local Commands = {
 	{
 		["Name"] = "Spin",
 		["Commands"] = {"spin"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -751,6 +819,7 @@ local Commands = {
 	{
 		["Name"] = "Unspin",
 		["Commands"] = {"unspin"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -777,6 +846,7 @@ local Commands = {
 	{
 		["Name"] = "Explode",
 		["Commands"] = {"explode"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -815,6 +885,7 @@ local Commands = {
 	{
 		["Name"] = "Set Health",
 		["Commands"] = {"health","heal","sethealth"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -844,6 +915,7 @@ local Commands = {
 	{
 		["Name"] = "Damage",
 		["Commands"] = {"damage","hurt"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -873,6 +945,7 @@ local Commands = {
 	{
 		["Name"] = "Fling",
 		["Commands"] = {"fling"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -931,6 +1004,7 @@ local Commands = {
 	{
 		["Name"] = "Float Relative",
 		["Commands"] = {"float","relfloat","hover","relhover"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -971,6 +1045,7 @@ local Commands = {
 	{
 		["Name"] = "Float Absolute",
 		["Commands"] = {"absfloat","abshover"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1011,6 +1086,7 @@ local Commands = {
 	{
 		["Name"] = "Unfloat",
 		["Commands"] = {"unfloat","unhover","drop"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1038,6 +1114,7 @@ local Commands = {
 	{
 		["Name"] = "Rocket",
 		["Commands"] = {"rocket","launch"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1079,6 +1156,7 @@ local Commands = {
 	{
 		["Name"] = "Forcefield",
 		["Commands"] = {"ff","forcefield","shield","protect"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1101,6 +1179,7 @@ local Commands = {
 	{
 		["Name"] = "Remove Forcefield",
 		["Commands"] = {"unff","unforcefield","unshield","unprotect"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1124,6 +1203,7 @@ local Commands = {
 	{
 		["Name"] = "Walkspeed",
 		["Commands"] = {"speed","walkspeed","resetspeed"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1156,6 +1236,7 @@ local Commands = {
 	{
 		["Name"] = "Kick",
 		["Commands"] = {"kick"},
+		["Level"] = 2,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1192,6 +1273,7 @@ local Commands = {
 	{
 		["Name"] = "Server Ban",
 		["Commands"] = {"ban","tban","serverban"},
+		["Level"] = 2,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1229,6 +1311,7 @@ local Commands = {
 	{
 		["Name"] = "Global Ban",
 		["Commands"] = {"pban","globalban"},
+		["Level"] = 1,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1299,6 +1382,7 @@ local Commands = {
 	{
 		["Name"] = "Teleport",
 		["Commands"] = {"tp","tele","teleport"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1339,6 +1423,7 @@ local Commands = {
 	{
 		["Name"] = "Teleport To",
 		["Commands"] = {"to","teleto","teleportto"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1371,6 +1456,7 @@ local Commands = {
 	{
 		["Name"] = "Scale Character",
 		["Commands"] = {"resize","size","scale"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1410,6 +1496,7 @@ local Commands = {
 	{
 		["Name"] = "Invisible",
 		["Commands"] = {"invisible","hide","ghost"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1440,6 +1527,7 @@ local Commands = {
 	{
 		["Name"] = "Visible",
 		["Commands"] = {"visible","unhide","unghost"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1472,6 +1560,7 @@ local Commands = {
 	{
 		["Name"] = "Fake Name",
 		["Commands"] = {"name","rename","fakename","alias"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1518,6 +1607,7 @@ local Commands = {
 	{
 		["Name"] = "Unname",
 		["Commands"] = {"unname","unalias"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1547,6 +1637,7 @@ local Commands = {
 	{
 		["Name"] = "Disguise",
 		["Commands"] = {"char","dress","disguise","cosplay"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1576,6 +1667,7 @@ local Commands = {
 	{
 		["Name"] = "Undisguise",
 		["Commands"] = {"unchar","undiguise","uncosplay"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1600,6 +1692,7 @@ local Commands = {
 	{
 		["Name"] = "Gear",
 		["Commands"] = {"gear","givegear"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1633,6 +1726,7 @@ local Commands = {
 	{
 		["Name"] = "FOV",
 		["Commands"] = {"fov","setfov","resetfov"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1666,6 +1760,7 @@ local Commands = {
 	{
 		["Name"] = "Build Tools",
 		["Commands"] = {"btools","buildtools"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1700,6 +1795,7 @@ local Commands = {
 	{
 		["Name"] = "Noclip",
 		["Commands"] = {"noclip"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1723,6 +1819,7 @@ local Commands = {
 	{
 		["Name"] = "Clip",
 		["Commands"] = {"clip"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1753,7 +1850,8 @@ local Commands = {
 	},
 	{
 		["Name"] = "Music",
-		["Commands"] = {"music","sound"},
+		["Commands"] = {"music","sound","tunes"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "ID",
@@ -1768,10 +1866,10 @@ local Commands = {
 			{
 				["Name"] = "Volume",
 				["Type"] = "number",
-				["Default"] = 1,
+				["Default"] = 0.5,
 			}
 		},
-		["Description"] = "Plays looped music with the desired properties",
+		["Description"] = "Plays looped music with the desired properties. You can play an ID, or one of these: ", --Expanded from table later on
 		["Function"] = function(Caller,Token)
 			if Token[2] then
 				local Sound = game.Workspace:FindFirstChild("AdminMusic")
@@ -1805,6 +1903,7 @@ local Commands = {
 	{
 		["Name"] = "Ambient",
 		["Commands"] = {"ambient"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Red",
@@ -1836,6 +1935,7 @@ local Commands = {
 	{
 		["Name"] = "Time",
 		["Commands"] = {"time","settime","timeofday"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Time",
@@ -1853,6 +1953,7 @@ local Commands = {
 	{
 		["Name"] = "Set CoreGui Enabled",
 		["Commands"] = {"setcge","cge","setguis"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1910,6 +2011,7 @@ local Commands = {
 	{
 		["Name"] = "Freecam",
 		["Commands"] = {"freecam"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1932,6 +2034,7 @@ local Commands = {
 	{
 		["Name"] = "Fix Camera",
 		["Commands"] = {"fixcam","resetcam"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1954,6 +2057,7 @@ local Commands = {
 	{
 		["Name"] = "Hide Guis",
 		["Commands"] = {"hidegui","hideguis"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Target",
@@ -1975,6 +2079,7 @@ local Commands = {
 	{
 		["Name"] = "Clean Server",
 		["Commands"] = {"clean","cleanserver"},
+		["Level"] = 3,
 		["Args"] = {},
 		["Description"] = "Cleans up any items/debris created with commands",
 		["Function"] = function(Caller,Token)
@@ -1987,6 +2092,7 @@ local Commands = {
 	{
 		["Name"] = "Wait",
 		["Commands"] = {"wait"},
+		["Level"] = 3,
 		["Args"] = {
 			{
 				["Name"] = "Time",
@@ -2002,6 +2108,7 @@ local Commands = {
 	{
 		["Name"] = "Commands Gui",
 		["Commands"] = {"cmds","commands"},
+		["Level"] = 3,
 		["Args"] = {},
 		["Description"] = "Bring up commands gui",
 		["Function"] = function(Caller,Token)
@@ -2017,7 +2124,7 @@ local Commands = {
 
 --Someone spoke
 function Chat(Player,Message)
-	local IsAdmin = AdminLevel(Player)
+	local Level = AdminLevel(Player)
 	local IsCommand = false
 	for _,Prefix in pairs(Prefixes) do
 		if Message:sub(1,string.len(Prefix)) == Prefix then
@@ -2025,7 +2132,7 @@ function Chat(Player,Message)
 			break
 		end
 	end
-	if IsAdmin and IsCommand then
+	if Level and IsCommand then
 		--Split message by Prefixes incase multiple commands
 		local SubMessage = {Message}
 		for _,Prefix in pairs(Prefixes) do
@@ -2061,8 +2168,10 @@ function Chat(Player,Message)
 				for _,Info in pairs(Commands) do
 					for _,CommandName in pairs(Info.Commands) do
 						if CommandName == Token[1] then
-							--Execute command
-							Info.Function(Player,Token)
+							--Execute command if theres permission
+							if Level <= Info.Level then
+								Info.Function(Player,Token)
+							end
 							Found = true
 							break
 						end
@@ -2075,9 +2184,13 @@ function Chat(Player,Message)
 end
 
 function GuiCommand(Player,Command,Token)
+	local Level = AdminLevel(Player)
 	for _,Info in pairs(Commands) do
 		if Info.Name == Command then
-			Info.Function(Player,Token) --Execute function
+			--Permission for this command?
+			if Level and Level <= Info.Level then
+				Info.Function(Player,Token) --Execute function
+			end
 			break
 		end
 	end
@@ -2098,9 +2211,7 @@ function NewAdmin(Player)
 	
 	--Listen for commands
 	Gui.Events.ExecuteCommand.OnServerEvent:connect(function(Player,Command,Token)
-		if AdminLevel(Player) then --Is still an admin
-			GuiCommand(Player,Command,Token)
-		end
+		GuiCommand(Player,Command,Token)
 	end)
 end
 
