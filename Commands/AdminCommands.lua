@@ -54,6 +54,7 @@ Changelog:
 1.5 (?):
 - Added commands gui
 - Added permission levels
+- Added preloaded music list
 1.4 (3/2/2018):
 - Restructured command descriptions in script
 - Added abshover and trip commands
@@ -73,7 +74,7 @@ ToDo:
 - Add admin/nonadmin/random/etc as player targets
 - Custom command hotkey?
 - Add gui shortcuts for undo-commands
-- Built-in music list
+- Print gui commands on server
 ToDo Commands:
 - Fly command
 - Disco command
@@ -1700,7 +1701,7 @@ local Commands = {
 			},
 			{
 				["Name"] = "ID",
-				["Type"] = "number",
+				["Type"] = "string", --Primarily number, but string has a longer textfield
 				["Default"] = nil,
 			},
 		},
@@ -1854,7 +1855,7 @@ local Commands = {
 		["Args"] = {
 			{
 				["Name"] = "ID",
-				["Type"] = "number",
+				["Type"] = "string", --Primarily number, but string has a longer textfield
 				["Default"] = nil,
 			},
 			{
@@ -1868,7 +1869,7 @@ local Commands = {
 				["Default"] = 0.5,
 			}
 		},
-		["Description"] = "Plays looped music with the desired properties. You can play an ID, or one of these: ", --Expanded from table later on
+		["Description"] = "Plays looped music with the desired properties. You can play an ID, off/stop, or one of these: ", --Expanded from table later on
 		["Function"] = function(Caller,Token)
 			if Token[2] then
 				local Sound = game.Workspace:FindFirstChild("AdminMusic")
@@ -1876,6 +1877,14 @@ local Commands = {
 				if Id == "off" or Id == "stop" then
 					if Sound then Sound:Stop() end
 				else
+					--Check MusicList for named Ids
+					for Name,ListId in pairs(MusicList) do
+						if Id:find(Name) then
+							Id = ListId
+							break
+						end
+					end
+					
 					local Pitch = 1
 					local Volume = 0.5
 					if Token[3] and tonumber(Token[3]) then
@@ -1907,20 +1916,20 @@ local Commands = {
 			{
 				["Name"] = "Red",
 				["Type"] = "number",
-				["Default"] = 0,
+				["Default"] = "0.0",
 			},
 			{
 				["Name"] = "Green",
 				["Type"] = "number",
-				["Default"] = 0,
+				["Default"] = "0.0",
 			},
 			{
 				["Name"] = "Blue",
 				["Type"] = "number",
-				["Default"] = 0,
+				["Default"] = "0.0",
 			}
 		},
-		["Description"] = "Sets lighting ambient to input 0-255",
+		["Description"] = "Sets lighting ambient to input 0-1",
 		["Function"] = function(Caller,Token)
 			if Token[2] and tonumber(Token[2]) then
 				if Token[3] and tonumber(Token[3]) and Token[4] and tonumber(Token[4]) then
@@ -2120,6 +2129,26 @@ local Commands = {
 		end,
 	},
 }
+
+--Add MusicList to :music description
+--Find the music command
+local MusicCommand
+for _,Command in pairs(Commands) do
+	if Command.Name == "Music" then
+		MusicCommand = Command
+		MusicCommand.Description = MusicCommand.Description.."\n"
+		break
+	end
+end
+--Make alphebetical list of choices
+local MusicNames = {}
+for Name,Id in pairs(MusicList) do
+	table.insert(MusicNames,Name)
+end
+table.sort(MusicNames,function(a,b) return a < b end)
+for _,Name in ipairs(MusicNames) do
+	MusicCommand.Description = MusicCommand.Description.."\n"..Prefixes[1].."music "..Name
+end
 
 --Someone spoke
 function Chat(Player,Message)

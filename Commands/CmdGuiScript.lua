@@ -91,9 +91,6 @@ function SelectCommand(TargetEntry)
 				Container.Level.Visible = true
 				Container.Commands.Text = CommandText
 				Container.Description.Text = Info.Description
-				Container.CanvasSize = UDim2.new(0,0,0,
-					Container.Description.Position.Y.Offset + Container.Description.TextBounds.Y
-				)
 			end
 		end
 	else
@@ -103,6 +100,10 @@ function SelectCommand(TargetEntry)
 		Container.Commands.Text = "Select a command"
 		Container.Description.Text = ""
 	end
+	
+	Container.CanvasSize = UDim2.new(0,0,0,
+		Container.Description.Position.Y.Offset + Container.Description.TextBounds.Y
+	)
 end
 
 function UpdatePlayerList()
@@ -128,7 +129,6 @@ function UpdatePlayerList()
 	for Player,Selected in pairs(Players) do
 		Counter = Counter + 1
 	end
-	print(Counter.." players")
 	Container.CanvasSize = UDim2.new(0,0,0,Counter * Container.Template.Size.Y.Offset)
 	
 	--Check/uncheck boxes
@@ -206,7 +206,7 @@ function UpdateArguments()
 end
 
 function UpdateFilter(Input)
-	Input = string.lower(Input)
+	if Input then Input = string.lower(Input) end
 	
 	local Container = Main.CommandList.ScrollingFrame
 	local Counter = 0
@@ -214,7 +214,7 @@ function UpdateFilter(Input)
 		local Entry = Container:FindFirstChild(Info.Name)
 		if Entry then
 			local Allowed = false
-			if Input == "" or Input == "search" then
+			if not Input or Input == "" or Input == "search" then
 				Allowed = true --Default, show everything
 			else
 				--Search command info for input
