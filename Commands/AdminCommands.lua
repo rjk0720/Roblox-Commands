@@ -350,26 +350,76 @@ function CopyTable(orig)
 	return copy
 end
 
+--Give gui and listen for commands
+function NewAdmin(Player)
+	while not Player:FindFirstChild("PlayerGui") do wait() end
+	local Gui = CommandGui:Clone()
+	Gui.Parent = Player.PlayerGui
+	
+	--Send gui command list without function code
+	local CommandList = CopyTable(Commands)
+	for _,Info in pairs(CommandList) do
+		Info.Function = nil
+	end
+	Gui.Events.NewCommandList:FireClient(Player,Prefixes,CommandList)
+	
+	--Listen for commands
+	Gui.Events.ExecuteCommand.OnServerEvent:connect(function(Player,Command,Token)
+		GuiCommand(Player,Command,Token)
+	end)
+end
+
 local Commands = {
 	{
 		["Name"] = "Temp Admin",
 		["Commands"] = {"admin","tadmin","tempadmin"},
-		["Level"] = 1,
+		["Level"] = "Variable",
 		["Args"] = {
 			{
 				["Name"] = "Target",
 				["Type"] = "target",
 				["Default"] = nil,
 			},
+			{
+				["Name"] = "Level",
+				["Type"] = "number",
+				["Default"] = 3,
+			},
 		},
-		["Description"] = "Adds player to the admin list for this server",
+		["Description"] = "Sets a players admin level for this server. Can only assign and edit levels less than or equal to your own",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
-					if not AdminLevel(List[i]) then --Not already an admin
-						table.insert(AdminList,List[i].Name)
-						NewAdmin(List[i])
+				local CallerLevel = AdminLevel(Caller)
+				local ArgLevel = 3
+				if Token[3] and tonumber(Token[3]) then
+					ArgLevel = tonumber(Token[3])
+				end
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					local TargetLevel = AdminLevel(Player)
+					--Allowed?
+					--Caller can set to this level
+					if CallerLevel >= ArgLevel then
+						--Target doesnt outrank caller
+						if not TargetLevel or CallerLevel >= TargetLevel then
+							local IsNewAdmin = true --Needs gui and other setup?
+							if TargetLevel then IsNewAdmin = false end
+							
+							--Remove from any current lists
+							for Rank,List in pairs(AdminList) do
+								for Num,Name in pairs(List) do
+									if Name == Player.Name then
+										table.remove(List,Num)
+									end
+								end
+							end
+							--Add to new one
+							table.insert(AdminList[ArgLevel],Player.Name)
+							--Setup
+							if IsNewAdmin then
+								NewAdmin(Player)
+							end
+						end
 					end
 				end
 			end
@@ -2222,25 +2272,6 @@ function GuiCommand(Player,Command,Token)
 			break
 		end
 	end
-end
-
---Give gui and listen for commands
-function NewAdmin(Player)
-	while not Player:FindFirstChild("PlayerGui") do wait() end
-	local Gui = CommandGui:Clone()
-	Gui.Parent = Player.PlayerGui
-	
-	--Send gui command list without function code
-	local CommandList = CopyTable(Commands)
-	for _,Info in pairs(CommandList) do
-		Info.Function = nil
-	end
-	Gui.Events.NewCommandList:FireClient(Player,Prefixes,CommandList)
-	
-	--Listen for commands
-	Gui.Events.ExecuteCommand.OnServerEvent:connect(function(Player,Command,Token)
-		GuiCommand(Player,Command,Token)
-	end)
 end
 
 --Player joined
