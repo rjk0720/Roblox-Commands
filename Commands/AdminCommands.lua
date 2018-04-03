@@ -80,6 +80,7 @@ ToDo:
 - Add gui shortcuts for undo-commands
 - Print gui commands on server
 - Notifications for error messages
+- Filter player-entered notifications
 ToDo Commands:
 - Fly command
 - Disco command
@@ -437,9 +438,9 @@ local Commands = {
 		["Description"] = "Kills player",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Humanoid = List[i]:FindFirstChild("Humanoid")
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Humanoid = Char:FindFirstChild("Humanoid")
 					if Humanoid then
 						Humanoid.Health = 0
 					end
@@ -489,9 +490,9 @@ local Commands = {
 				Search(game.ReplicatedStorage)
 				Search(game.Lighting)
 				if TargetItem then
-					local List = GetPlayerList(Caller,Token[2])
-					for i=1,#List do
-						local Backpack = List[i]:FindFirstChild("Backpack")
+					local PlayerList = GetPlayerList(Caller,Token[2])
+					for _,Player in pairs(PlayerList) do
+						local Backpack = Player:FindFirstChild("Backpack")
 						if Backpack then
 							TargetItem:Clone().Parent = Backpack
 						end
@@ -514,9 +515,9 @@ local Commands = {
 		["Description"] = "Forces player to respawn",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
-					List[i]:LoadCharacter()
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					Player:LoadCharacter()
 				end
 			end
 		end,
@@ -535,9 +536,9 @@ local Commands = {
 		["Description"] = "Makes player sit",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Humanoid = List[i]:FindFirstChild("Humanoid")
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Humanoid = Char:FindFirstChild("Humanoid")
 					if Humanoid then
 						Humanoid.Sit = true
 					end
@@ -559,11 +560,11 @@ local Commands = {
 		["Description"] = "Flips player upside down",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Torso = GetTorso(List[i])
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Torso = GetTorso(Char)
 					if Torso then
-						Torso.CFrame = Torso.CFrame * CFrame.Angles(math.rad(180),0,0)
+						Torso.CFrame = Torso.CFrame * CFrame.Angles(math.rad(math.random(170,190)),0,0)
 					end
 				end
 			end
@@ -588,10 +589,10 @@ local Commands = {
 		["Description"] = "Makes player jump with optional vertical speed",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Humanoid = List[i]:FindFirstChild("Humanoid")
-					local Torso = GetTorso(List[i])
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Torso = GetTorso(Char)
 					if Humanoid and Torso then
 						if Token[3] and tonumber(Token[3]) then
 							local Speed = tonumber(Token[3])
@@ -622,9 +623,9 @@ local Commands = {
 		["Description"] = "Player falls over and cannot get up",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Humanoid = List[i]:FindFirstChild("Humanoid")
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Humanoid = Char:FindFirstChild("Humanoid")
 					if Humanoid then
 						Humanoid.PlatformStand = true
 					end
@@ -646,9 +647,9 @@ local Commands = {
 		["Description"] = "Undoes stun command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Humanoid = List[i]:FindFirstChild("Humanoid")
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Humanoid = Char:FindFirstChild("Humanoid")
 					if Humanoid then
 						Humanoid.PlatformStand = false
 					end
@@ -670,9 +671,9 @@ local Commands = {
 		["Description"] = "Freezes player so they cannot move",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Part = List[i]:GetChildren()
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Part = Char:GetChildren()
 					for x=1,#Part do
 						if Part[x]:IsA("BasePart") then
 							Part[x].Anchored = true
@@ -696,9 +697,9 @@ local Commands = {
 		["Description"] = "Undoes freeze command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Part = List[i]:GetChildren()
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Part = Char:GetChildren()
 					for x=1,#Part do
 						if Part[x]:IsA("BasePart") then
 							Part[x].Anchored = false
@@ -722,9 +723,9 @@ local Commands = {
 		["Description"] = "Hides player character",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					List[i].Parent = game.Lighting
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					Char.Parent = game.Lighting
 				end
 			end
 		end,
@@ -743,10 +744,10 @@ local Commands = {
 		["Description"] = "Undoes punish command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					List[i].Parent = game.Workspace
-					List[i]:MakeJoints()
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					Char.Parent = game.Workspace
+					Char:MakeJoints()
 				end
 			end
 		end,
@@ -765,25 +766,25 @@ local Commands = {
 		["Description"] = "Puts player in an impenetrable cage",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Torso = GetTorso(List[i])
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Torso = GetTorso(Char)
 					local AlreadyJailed = false
 					for x=1,#Jailed do
-						if Jailed[x] == List[i].Name then
+						if Jailed[x] == Char.Name then
 							AlreadyJailed = true
 							break
 						end
 					end
 					if not AlreadyJailed  then
-						Jailed[#Jailed+1] = List[i].Name
+						Jailed[#Jailed+1] = Char.Name
 					end
 					if Torso then
-						local Cage = game.Workspace:FindFirstChild("Cage_"..List[i].Name)
+						local Cage = game.Workspace:FindFirstChild("Cage_"..Char.Name)
 						if not Cage then
 							Cage = script.Cage:Clone()
 							table.insert(DebrisList,Cage)
-							Cage.Name = "Cage_"..List[i].Name
+							Cage.Name = "Cage_"..Char.Name
 							Cage.Parent = game.Workspace
 							Cage:SetPrimaryPartCFrame(CFrame.new(Torso.Position + Vector3.new(0,-3,0)))
 						end
@@ -806,16 +807,16 @@ local Commands = {
 		["Description"] = "Undoes jail command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
 					local Stuff = game.Workspace:GetChildren()
 					for x=1,#Stuff do
-						if Stuff[x].Name == "Cage_"..List[i].Name then
+						if Stuff[x].Name == "Cage_"..Char.Name then
 							Stuff[x]:Destroy()
 						end
 					end
 					for x=1,#Jailed do
-						if Jailed[x] == List[i].Name then
+						if Jailed[x] == Char.Name then
 							Jailed[x] = nil
 						end
 					end
@@ -846,9 +847,9 @@ local Commands = {
 				if Token[3] and tonumber(Token[3]) then
 					Speed = tonumber(Token[3])
 				end
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Torso = GetTorso(List[i])
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Torso = GetTorso(Char)
 					if Torso then
 						local Spinner = Torso:FindFirstChild("Spinner")
 						if not Spinner then
@@ -878,9 +879,9 @@ local Commands = {
 		["Description"] = "Undoes spin command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Torso = GetTorso(List[i])
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Torso = GetTorso(Char)
 					if Torso then
 						local Spinner = Torso:FindFirstChild("Spinner")
 						if Spinner then
@@ -916,9 +917,9 @@ local Commands = {
 					Size = tonumber(Token[3])
 					Pressure = 12500 * Size
 				end
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Torso = GetTorso(List[i])
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Torso = GetTorso(Char)
 					if Torso then
 						local Explosion = Instance.new("Explosion")
 						Explosion.BlastRadius = Size
@@ -953,9 +954,9 @@ local Commands = {
 				if Token[3] and tonumber(Token[3]) then
 					Health = tonumber(Token[3])
 				end
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					List[i].Humanoid.Health = Health
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					Char.Humanoid.Health = Health
 				end
 			end
 		end,
@@ -983,9 +984,9 @@ local Commands = {
 				if Token[3] and tonumber(Token[3]) then
 					Damage = tonumber(Token[3])
 				end
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					List[i].Humanoid.Health = List[i].Humanoid.Health - Damage
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					Char.Humanoid.Health = Char.Humanoid.Health - Damage
 				end
 			end
 		end,
@@ -1009,11 +1010,11 @@ local Commands = {
 		["Description"] = "Flings player off in a random direction with default speed 300",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
 					coroutine.resume(coroutine.create(function()
-						local Humanoid = List[i]:FindFirstChild("Humanoid")
-						local Torso = GetTorso(List[i])
+						local Humanoid = Char:FindFirstChild("Humanoid")
+						local Torso = GetTorso(Char)
 						if Humanoid and Torso then
 							local Angle = math.random(0,359)
 							local Speed = 300
@@ -1072,10 +1073,10 @@ local Commands = {
 				if Token[3] and tonumber(Token[3]) then
 					Height = tonumber(Token[3])
 				end
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Humanoid = List[i]:FindFirstChild("Humanoid")
-					local Torso = GetTorso(List[i])
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Torso = GetTorso(Char)
 					if Humanoid and Torso then
 						local Force = Torso:FindFirstChild("FloatForce")
 						if not Force then
@@ -1083,7 +1084,7 @@ local Commands = {
 							Force.Name = "FloatForce"
 							Force.MaxForce = Vector3.new(0,100000,0)
 						end
-						Force.Position = Vector3.new(0,(List[i].HumanoidRootPart.CFrame.y + Height),0)
+						Force.Position = Vector3.new(0,(Char.HumanoidRootPart.CFrame.y + Height),0)
 						Force.Parent = Torso
 					end
 				end
@@ -1113,10 +1114,10 @@ local Commands = {
 				if Token[3] and tonumber(Token[3]) then
 					Height = tonumber(Token[3])
 				end
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Humanoid = List[i]:FindFirstChild("Humanoid")
-					local Torso = GetTorso(List[i])
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Torso = GetTorso(Char)
 					if Humanoid and Torso then
 						local Force = Torso:FindFirstChild("FloatForce")
 						if not Force then
@@ -1145,10 +1146,10 @@ local Commands = {
 		["Description"] = "Undoes float command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Humanoid = List[i]:FindFirstChild("Humanoid")
-					local Torso = GetTorso(List[i])
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Torso = GetTorso(Char)
 					if Humanoid and Torso then
 						local Force = Torso:FindFirstChild("FloatForce")
 						if Force then
@@ -1173,13 +1174,13 @@ local Commands = {
 		["Description"] = "Launches player into the air, where they then explode",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
 					coroutine.resume(coroutine.create(function()
-						local Humanoid = List[i]:FindFirstChild("Humanoid")
-						local Torso = GetTorso(List[i])
+						local Humanoid = Char:FindFirstChild("Humanoid")
+						local Torso = GetTorso(Char)
 						if Humanoid and Torso then
-							local Mass = GetTotalMass(List[i])
+							local Mass = GetTotalMass(Char)
 							Humanoid.PlatformStand = true
 							local Fire = Instance.new("Fire")
 							Fire.Heat = 0
@@ -1215,10 +1216,10 @@ local Commands = {
 		["Description"] = "Gives player a forcefield",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					if not List[i]:FindFirstChild("ForceField") then
-						Instance.new("ForceField",List[i])
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					if not Char:FindFirstChild("ForceField") then
+						Instance.new("ForceField",Char)
 					end
 				end
 			end
@@ -1238,9 +1239,9 @@ local Commands = {
 		["Description"] = "Removes forcefield from player",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local ForceField = List[i]:FindFirstChild("ForceField")
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local ForceField = Char:FindFirstChild("ForceField")
 					if ForceField then
 						ForceField:destroy()
 					end
@@ -1271,9 +1272,9 @@ local Commands = {
 				if Token[3] and tonumber(Token[3]) then
 					Speed = tonumber(Token[3])
 				end
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Humanoid = List[i]:FindFirstChild("Humanoid")
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Humanoid = Char:FindFirstChild("Humanoid")
 					if Humanoid then
 						Humanoid.WalkSpeed = tonumber(Token[3])
 					end
@@ -1307,12 +1308,12 @@ local Commands = {
 						Message = Message..Token[i].." "
 					end
 				end
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
 					if Message then
-						List[i]:Kick(Message)
+						Player:Kick(Message)
 					else
-						List[i]:Kick()
+						Player:Kick()
 					end
 				end
 			end
@@ -1344,13 +1345,13 @@ local Commands = {
 						Message = Message..Token[i].." "
 					end
 				end
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
-					table.insert(ScriptBanList,List[i].Name)
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					table.insert(ScriptBanList,Player.Name)
 					if Message then
-						List[i]:Kick(Message)
+						Player:Kick(Message)
 					else
-						List[i]:Kick()
+						Player:Kick()
 					end
 				end
 			end
@@ -1393,9 +1394,9 @@ local Commands = {
 					end
 				end
 				
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
-					local CardName = List[i].Name..","..List[i].userId
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					local CardName = Player.Name..","..Player.userId
 					local CardDesc = {
 						["IssuedBy"] = Caller.Name,
 						["Reason"] = Reason,
@@ -1422,7 +1423,7 @@ local Commands = {
 						Message = Message.." "..BanInfo
 					end
 					
-					List[i]:Kick(Message)
+					Player:Kick(Message)
 				end
 			end
 		end,
@@ -1446,19 +1447,19 @@ local Commands = {
 		["Description"] = "Teleports player1 to player2",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
-				local List1 = GetCharList(Caller,Token[2])
-				local List2 = GetCharList(Caller,Token[3])
-				if #List1 > 0 and #List2 == 1 then
+				local CharList1 = GetCharList(Caller,Token[2])
+				local CharList2 = GetCharList(Caller,Token[3])
+				if #CharList1 > 0 and #CharList2 == 1 then
 					--Get target torso cframe
 					local TargetCF
-					local TargetTorso = GetTorso(List2[1])
+					local TargetTorso = GetTorso(CharList2[1])
 					if TargetTorso then
 						TargetCF = TargetTorso.CFrame
 					end
 					if TargetCF then
 						--Teleport all of List1 to there
-						for i=1,#List1 do
-							local Torso = GetTorso(List1[i])
+						for _,Char in pairs(CharList1) do
+							local Torso = GetTorso(Char)
 							if Torso then
 								Torso.CFrame = TargetCF + Vector3.new(math.random(-20,20)/10,0,math.random(-20,20)/10)
 							end
@@ -1482,11 +1483,11 @@ local Commands = {
 		["Description"] = "Teleports speaker to player",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				if #List == 1 then
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
 					--Get target torso cframe
 					local TargetCF
-					local TargetTorso = GetTorso(List[1])
+					local TargetTorso = GetTorso(Char)
 					if TargetTorso then
 						TargetCF = TargetTorso.CFrame
 					end
@@ -1520,9 +1521,9 @@ local Commands = {
 		["Description"] = "Resizes players character to scale, 1 being normal (R15 only)",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] and tonumber(Token[3]) then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Humanoid = List[i]:FindFirstChild("Humanoid")
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Humanoid = Char:FindFirstChild("Humanoid")
 					if Humanoid then
 						local PrevScale = 1
 						local Scale = {
@@ -1564,10 +1565,10 @@ local Commands = {
 				end
 			end
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					Invisible(List[i])
-					List[i].Head.Face.Transparency = 1
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					Invisible(Char)
+					Char.Head.Face.Transparency = 1
 				end
 			end
 		end,
@@ -1585,7 +1586,7 @@ local Commands = {
 		},
 		["Description"] = "Undoes invisible command",
 		["Function"] = function(Caller,Token)
-			local function Invisible(Item)
+			local function Visible(Item)
 				if Item:IsA("BasePart") or Item.ClassName == "Decal" then
 					if Item.Name ~= "HumanoidRootPart" then
 						Item.Transparency = 0
@@ -1593,14 +1594,14 @@ local Commands = {
 				end
 				local Stuff = Item:GetChildren()
 				for i=1,#Stuff do
-					Invisible(Stuff[i])
+					Visible(Stuff[i])
 				end
 			end
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					Invisible(List[i])
-					List[i].Head.Face.Transparency = 0
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					Visible(Char)
+					Char.Head.Face.Transparency = 0
 				end
 			end
 		end,
@@ -1624,18 +1625,18 @@ local Commands = {
 		["Description"] = "Gives player a new fake name",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Head = List[i]:FindFirstChild("Head")
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Head = Char:FindFirstChild("Head")
 					if Head then
-						local Part = List[i]:GetChildren()
+						local Part = Char:GetChildren()
 						for x=1,#Part do
 							if Part[x]:FindFirstChild("NameTag") then
 								Head.Transparency = 0
 								Part[x]:Destroy()
 							end
 						end
-						local Model = Instance.new("Model",List[i])
+						local Model = Instance.new("Model",Char)
 						Model.Name = Token[3]
 						local NewHead = Head:Clone()
 						NewHead.Parent = Model
@@ -1666,11 +1667,11 @@ local Commands = {
 		["Description"] = "Undoes fake name command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetCharList(Caller,Token[2])
-				for i=1,#List do
-					local Head = List[i]:FindFirstChild("Head")
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Head = Char:FindFirstChild("Head")
 					if Head then
-						local Part = List[i]:GetChildren()
+						local Part = Char:GetChildren()
 						for x=1,#Part do
 							if Part[x]:FindFirstChild("NameTag") then
 								Head.Transparency = 0
@@ -1703,10 +1704,10 @@ local Commands = {
 			if Token[2] and Token[3] then
 				local Id = game.Players:GetUserIdFromNameAsync(Token[3])
 				if Id then
-					local List = GetPlayerList(Caller,Token[2])
-					for i=1,#List do
-						List[i].CharacterAppearance = "http://www.roblox.com/asset/CharacterFetch.ashx?userId="..Id
-						List[i]:LoadCharacter()
+					local PlayerList = GetPlayerList(Caller,Token[2])
+					for _,Player in pairs(PlayerList) do
+						Player.CharacterAppearance = "http://www.roblox.com/asset/CharacterFetch.ashx?userId="..Id
+						Player:LoadCharacter()
 					end
 				end
 			end
@@ -1726,12 +1727,12 @@ local Commands = {
 		["Description"] = "Resets char command and makes player look like their own avatar",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] then
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
-					local Id = game.Players:GetUserIdFromNameAsync(List[i].Name)
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					local Id = game.Players:GetUserIdFromNameAsync(Player.Name)
 					if Id then
-						List[i].CharacterAppearance = "http://www.roblox.com/asset/CharacterFetch.ashx?userId="..Id
-						List[i]:LoadCharacter()
+						Player.CharacterAppearance = "http://www.roblox.com/asset/CharacterFetch.ashx?userId="..Id
+						Player:LoadCharacter()
 					end
 				end
 			end
@@ -1756,13 +1757,13 @@ local Commands = {
 		["Description"] = "Gives player gear with specified ID",
 		["Function"] = function(Caller,Token)
 			if Token[2] and Token[3] and tonumber(Token[3]) then
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
-					if List[i]:FindFirstChild("Backpack") then
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					if Player:FindFirstChild("Backpack") then
 						local Obj = game:service("InsertService"):LoadAsset(tonumber(Token[3]))
 						for Key,Value in pairs(Obj:children()) do
 							if Value:IsA("Tool") or Value:IsA("HopperBin") then
-								Value.Parent = List[i].Backpack
+								Value.Parent = Player.Backpack
 							end
 						end
 						Obj:Destroy()
@@ -1794,12 +1795,12 @@ local Commands = {
 				if Token[3] and tonumber(Token[3]) then
 					Angle = tonumber(Token[3])
 				end
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
 					if Angle >= 1 and Angle <= 120 then
 						local fovScript = script.LocalScripts.FOV:Clone()
 						fovScript.FOVSetting.Value = Angle
-						fovScript.Parent = List[i].Backpack
+						fovScript.Parent = Player.Backpack
 					end
 				end
 			end
@@ -1819,9 +1820,9 @@ local Commands = {
 		["Description"] = "Gives player classic build tools",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
-					if List[i]:FindFirstChild("Backpack") then
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					if Player:FindFirstChild("Backpack") then
 						local Tool = {}
 						for x=1,3 do
 							Tool[x] = Instance.new("HopperBin")
@@ -1833,7 +1834,7 @@ local Commands = {
 						Tool[3].Name = "Delete"
 						Tool[3].BinType = "Hammer"
 						for x=1,3 do
-							Tool[x].Parent = List[i].Backpack
+							Tool[x].Parent = Player.Backpack
 						end
 					end
 				end
@@ -1854,11 +1855,11 @@ local Commands = {
 		["Description"] = "Lets player fly and move through walls",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
-					if not List[i].Backpack:FindFirstChild("NoClip") then
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					if not Player.Backpack:FindFirstChild("NoClip") then
 						local ClipScript = script.LocalScripts.NoClip:Clone()
-						ClipScript.Parent = List[i].Backpack
+						ClipScript.Parent = Player.Backpack
 					end
 				end
 			end
@@ -1878,13 +1879,13 @@ local Commands = {
 		["Description"] = "Undoes noclip command",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
-					if not List[i].Backpack:FindFirstChild("Clip") then
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					if not Player.Backpack:FindFirstChild("Clip") then
 						local ClipScript = script.LocalScripts.Clip:Clone()
-						ClipScript.Parent = List[i].Backpack
+						ClipScript.Parent = Player.Backpack
 					end
-					local Torso = GetPlayerTorso(List[i])
+					local Torso = GetPlayerTorso(Player)
 					if Torso then
 						local Humanoid = Torso.Parent:FindFirstChild("Humanoid")
 						if Humanoid then
@@ -2077,13 +2078,13 @@ local Commands = {
 					end
 				end
 				if isEnum == true then
-					local List = GetPlayerList(Caller,Token[2])
-					for i=1,#List do
+					local PlayerList = GetPlayerList(Caller,Token[2])
+					for _,Player in pairs(PlayerList) do
 						local scriptClone = commandScript:Clone()
 						scriptClone.EnumValue.Value = enumType.Value
 						scriptClone.BoolValue.Value = boolValue
 						scriptClone.Disabled = false
-						scriptClone.Parent = List[i].Backpack
+						scriptClone.Parent = Player.Backpack
 					end
 				end
 			end
@@ -2103,10 +2104,10 @@ local Commands = {
 		["Description"] = "Gives player freecam. Click to teleport. Insert to stop.",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
 					local CamScript = script.LocalScripts.Freecam:Clone()
-					CamScript.Parent = List[i].Backpack
+					CamScript.Parent = Player.Backpack
 					CamScript.Disabled = false
 				end
 			end
@@ -2126,10 +2127,10 @@ local Commands = {
 		["Description"] = "Resets anything done to players camera",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
 					local resetScript = script.LocalScripts.Resetcam:Clone()
-					resetScript.Parent = List[i].Backpack
+					resetScript.Parent = Player.Backpack
 					resetScript.Disabled = false
 				end
 			end
@@ -2149,10 +2150,10 @@ local Commands = {
 		["Description"] = "Hides as many guis as possible for player",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local List = GetPlayerList(Caller,Token[2])
-				for i=1,#List do
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
 					local GuiScript = script.LocalScripts.HideGuis:Clone()
-					GuiScript.Parent = List[i].Backpack
+					GuiScript.Parent = Player.Backpack
 				end
 			end
 		end,
