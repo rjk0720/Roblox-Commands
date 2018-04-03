@@ -19,6 +19,9 @@ local ScriptBanList = {}
 --What you can start commands with
 local Prefixes = {":","/","please ","sudo ","ok google ","okay google ","ok google, ","okay google, ","alexa ","alexa, ","hey siri ","hey siri, "}
 
+--Apply chat filter to broadcasts made with :m etc
+local FilterNotifications = false --ToDo
+
 --Optional Trello banlist
 --Follow the instructions in the TrelloAPI module script to set up your key/token
 local TrelloBoardName = "Your Banlist"
@@ -67,6 +70,7 @@ Changelog:
 - Added pban command
 
 ToDo:
+- Notifications built in
 - Trello admin list
 - Move jail model to script (and fix it)
 - Simplify Trello token/keys
@@ -75,6 +79,7 @@ ToDo:
 - Custom command hotkey?
 - Add gui shortcuts for undo-commands
 - Print gui commands on server
+- Notifications for error messages
 ToDo Commands:
 - Fly command
 - Disco command
@@ -350,23 +355,16 @@ function CopyTable(orig)
 	return copy
 end
 
---Give gui and listen for commands
-function NewAdmin(Player)
-	while not Player:FindFirstChild("PlayerGui") do wait() end
-	local Gui = CommandGui:Clone()
-	Gui.Parent = Player.PlayerGui
-	
-	--Send gui command list without function code
-	local CommandList = CopyTable(Commands)
-	for _,Info in pairs(CommandList) do
-		Info.Function = nil
+function Notify(Player,Message,Color,Time)
+	if Player and Player:FindFirstChild("PlayerGui") then
+		local Gui = Player.PlayerGui:FindFirstChild("CommandNotifications")
+		if Gui and Gui:FindFirstChild("Events") then
+			local Event = Gui.Events:FindFirstChild("Notification")
+			if Event then
+				Event:FireClient(Player,Message,Color,Time)
+			end
+		end
 	end
-	Gui.Events.NewCommandList:FireClient(Player,Prefixes,CommandList)
-	
-	--Listen for commands
-	Gui.Events.ExecuteCommand.OnServerEvent:connect(function(Player,Command,Token)
-		GuiCommand(Player,Command,Token)
-	end)
 end
 
 local Commands = {
@@ -1899,6 +1897,31 @@ local Commands = {
 		end,
 	},
 	{
+		["Name"] = "Message",
+		["Commands"] = {"m","msg","message","shout"},
+		["Level"] = 3,
+		["Args"] = {
+			{
+				["Name"] = "Message",
+				["Type"] = "string",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Displays a message to all players in the server",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local Message = Token[2]
+				for i=3,#Token do
+					Message = Message.." "..Token[i]
+				end
+				local List = GetPlayerList(Caller,"all")
+				for _,Player in pairs(List) do
+					Notify(Player,Message)
+				end
+			end
+		end,
+	},
+	{
 		["Name"] = "Music",
 		["Commands"] = {"music","sound","tunes"},
 		["Level"] = 3,
@@ -2136,7 +2159,7 @@ local Commands = {
 	},
 	{
 		["Name"] = "Clean Server",
-		["Commands"] = {"clean","cleanserver"},
+		["Commands"] = {"clean","clear","cleanserver"},
 		["Level"] = 3,
 		["Args"] = {},
 		["Description"] = "Cleans up any items/debris created with commands",
@@ -2198,6 +2221,25 @@ end
 table.sort(MusicNames,function(a,b) return a < b end)
 for _,Name in ipairs(MusicNames) do
 	MusicCommand.Description = MusicCommand.Description.."\n"..Prefixes[1].."music "..Name
+end
+
+--Give gui and listen for commands
+function NewAdmin(Player)
+	while not Player:FindFirstChild("PlayerGui") do wait() end
+	local Gui = CommandGui:Clone()
+	Gui.Parent = Player.PlayerGui
+	
+	--Send gui command list without function code
+	local CommandList = CopyTable(Commands)
+	for _,Info in pairs(CommandList) do
+		Info.Function = nil
+	end
+	Gui.Events.NewCommandList:FireClient(Player,Prefixes,CommandList)
+	
+	--Listen for commands
+	Gui.Events.ExecuteCommand.OnServerEvent:connect(function(Player,Command,Token)
+		GuiCommand(Player,Command,Token)
+	end)
 end
 
 --Someone spoke
@@ -2325,6 +2367,9 @@ game.Players.PlayerAdded:connect(function(Player)
 	CheckBanned(Player)
 	--Update guis about new player list
 	UpdatePlayerLists()
+	--Give notification gui
+	while not Player:FindFirstChild("PlayerGui") do wait() end
+	script.CommandNotifications:Clone().Parent = Player.PlayerGui
 end)
 
 game.Players.PlayerRemoving:connect(function()
