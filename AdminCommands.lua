@@ -58,6 +58,9 @@ Changelog:
 - Added commands gui
 - Added permission levels
 - Added preloaded music list
+- Added built-in notifications
+- Added shout command
+- Added fly command
 1.4 (3/2/2018):
 - Restructured command descriptions in script
 - Added abshover and trip commands
@@ -82,11 +85,13 @@ ToDo:
 - Notifications for error messages
 - Filter player-entered notifications
 ToDo Commands:
-- Fly command
 - Disco command
 - Remove tools command
 - Set max health command
 - More ambient commands
+- Light command
+- Shutdown server command
+- Teleport to mouse command
 - Bunch more commands
 
 --]]
@@ -1842,6 +1847,56 @@ local Commands = {
 		end,
 	},
 	{
+		["Name"] = "Fly",
+		["Commands"] = {"fly"},
+		["Level"] = 3,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Lets player fly around in the air",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					if not Player.Backpack:FindFirstChild("Fly") then
+						Notify(Player,"Press [X] to toggle flight")
+						local FlyScript = script.LocalScripts.Fly:Clone()
+						FlyScript.Parent = Player.Backpack
+					end
+				end
+			end
+		end,
+	},
+	--[[
+	{
+		["Name"] = "Land",
+		["Commands"] = {"land","unfly"},
+		["Level"] = 3,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Undoes fly command",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					if Player.Backpack:FindFirstChild("Fly") then
+						Player.Backpack.Fly:destroy()
+					end
+				end
+			end
+		end,
+	},
+	--]]
+	{
 		["Name"] = "Noclip",
 		["Commands"] = {"noclip"},
 		["Level"] = 3,
@@ -1866,7 +1921,7 @@ local Commands = {
 		end,
 	},
 	{
-		["Name"] = "Clip",
+		["Name"] = "Clip", --Broken, player has to respawn
 		["Commands"] = {"clip"},
 		["Level"] = 3,
 		["Args"] = {
