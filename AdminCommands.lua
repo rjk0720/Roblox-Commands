@@ -22,6 +22,9 @@ local Prefixes = {":","/","please ","sudo ","ok google ","okay google ","ok goog
 --Apply chat filter to broadcasts made with :m etc
 local FilterNotifications = false --ToDo
 
+--Commands gui is open by default?
+local ShowGuiAtStart = false
+
 --Optional Trello banlist
 --Follow the instructions in the TrelloAPI module script to set up your key/token
 local TrelloBoardName = "Your Banlist"
@@ -73,7 +76,6 @@ Changelog:
 - Added pban command
 
 ToDo:
-- Notifications built in
 - Trello admin list
 - Move jail model to script (and fix it)
 - Simplify Trello token/keys
@@ -82,7 +84,6 @@ ToDo:
 - Custom command hotkey?
 - Add gui shortcuts for undo-commands
 - Print gui commands on server
-- Notifications for error messages
 - Filter player-entered notifications
 ToDo Commands:
 - Disco command
@@ -92,6 +93,8 @@ ToDo Commands:
 - Light command
 - Shutdown server command
 - Teleport to mouse command
+- Repeat last command command
+- Join played in another server command
 - Bunch more commands
 
 --]]
@@ -119,6 +122,9 @@ end
 
 local CommandGui = script:WaitForChild("BasicCommands")
 CommandGui.Main.Info.Text = "Commands ["..Version.."]"
+if not ShowGuiAtStart then
+	CommandGui.Main.Position = UDim2.new(0.5,-400,1.2,0)
+end
 local TrelloBanList = {}
 local Jailed = {}
 local DebrisList = {}
@@ -244,7 +250,7 @@ function GetCharList(Caller,Name) --Returns a table
 			end
 		else
 			if NameList[w] == "me" then NameList[w] = Caller.Name end
-			local Player = GetPlayer(NameList[w])
+			local Player = GetPlayer(Caller,NameList[w])
 			if Player then
 				local Char = Player.Character
 				if Char then
@@ -274,7 +280,7 @@ function GetPlayerList(Caller,Name) --Returns a table
 			end
 		else
 			if NameList[w] == "me" then NameList[w] = Caller.Name end
-			local Player = GetPlayer(NameList[w])
+			local Player = GetPlayer(Caller,NameList[w])
 			if Player then
 				table.insert(Table,Player)
 			end
@@ -283,7 +289,7 @@ function GetPlayerList(Caller,Name) --Returns a table
 	return Table
 end
 
-function GetPlayer(Name) --Allows for shortened names
+function GetPlayer(Caller,Name) --Allows for shortened names
 	Name = string.lower(Name)
 	local Result = {}
 	local Check = game.Players:GetChildren()
@@ -296,8 +302,14 @@ function GetPlayer(Name) --Allows for shortened names
 		return Result[1]
 	elseif #Result == 0 then
 		print("No results for player name: "..Name)
+		if Caller then
+			Notify(Caller,"No results for player name: "..Name,Color3.fromRGB(255,170,0))
+		end
 	else
 		print("Multiple results for player name: "..Name)
+		if Caller then
+			Notify(Caller,"Multiple results for player name: "..Name,Color3.fromRGB(255,170,0))
+		end
 	end
 	return nil
 end
@@ -423,7 +435,11 @@ local Commands = {
 							if IsNewAdmin then
 								NewAdmin(Player)
 							end
+						else
+							Notify(Caller,"Insufficient permissions",Color3.fromRGB(255,170,0))
 						end
+					else
+						Notify(Caller,"Insufficient permissions",Color3.fromRGB(255,170,0))
 					end
 				end
 			end
@@ -502,6 +518,8 @@ local Commands = {
 							TargetItem:Clone().Parent = Backpack
 						end
 					end
+				else
+					Notify(Caller,"No tools found: "..ToolName,Color3.fromRGB(255,170,0))
 				end
 			end
 		end,
@@ -1689,7 +1707,7 @@ local Commands = {
 		end,
 	},
 	{
-		["Name"] = "Disguise",
+		["Name"] = "Disguise", --Broken
 		["Commands"] = {"char","dress","disguise","cosplay"},
 		["Level"] = 3,
 		["Args"] = {
@@ -1799,6 +1817,13 @@ local Commands = {
 				local Angle = 70
 				if Token[3] and tonumber(Token[3]) then
 					Angle = tonumber(Token[3])
+					if Angle < 1 then
+						Notify(Caller,"Using minimum FOV of 1",Color3.fromRGB(255,170,0))
+						Angle = 1
+					elseif Angle > 120 then
+						Notify(Caller,"Using maximum FOV of 120",Color3.fromRGB(255,170,0))
+						Angle = 120
+					end
 				end
 				local PlayerList = GetPlayerList(Caller,Token[2])
 				for _,Player in pairs(PlayerList) do
@@ -2354,6 +2379,9 @@ function Chat(Player,Message)
 					end
 					if Found then break end
 				end
+				if not Found then
+					Notify(Player,"Unknown command: "..Token[1],Color3.fromRGB(255,170,0))
+				end
 			end
 		end
 	end
@@ -2379,7 +2407,8 @@ game.Players.PlayerAdded:connect(function(Player)
 		Chat(Player,Message)
 	end)
 	--Check if admin (and give gui)
-	if AdminLevel(Player) then
+	local Level = AdminLevel(Player)
+	if Level then
 		NewAdmin(Player)
 	end
 	--Check if jailed
@@ -2426,6 +2455,9 @@ game.Players.PlayerAdded:connect(function(Player)
 	--Give notification gui
 	while not Player:FindFirstChild("PlayerGui") do wait() end
 	script.CommandNotifications:Clone().Parent = Player.PlayerGui
+	if Level then
+		Notify(Player,"You are a level "..Level.." admin!",Color3.new(0,1,0))
+	end
 end)
 
 game.Players.PlayerRemoving:connect(function()
