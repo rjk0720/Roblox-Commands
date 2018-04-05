@@ -64,6 +64,7 @@ Changelog:
 - Added built-in notifications
 - Added shout command
 - Added fly command
+- Added light command
 1.4 (3/2/2018):
 - Restructured command descriptions in script
 - Added abshover and trip commands
@@ -85,16 +86,16 @@ ToDo:
 - Add gui shortcuts for undo-commands
 - Print gui commands on server
 - Filter player-entered notifications
+- Keybind commands
 ToDo Commands:
 - Disco command
 - Remove tools command
 - Set max health command
 - More ambient commands
-- Light command
 - Shutdown server command
 - Teleport to mouse command
 - Repeat last command command
-- Join played in another server command
+- Join player in another server command
 - Bunch more commands
 
 --]]
@@ -1559,6 +1560,92 @@ local Commands = {
 						local ScaleChange = tonumber(Token[3])/PrevScale
 						for x=1,#Scale do
 							if Scale[x] then Scale[x].Value = tonumber(Token[3]) end
+						end
+					end
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Light",
+		["Commands"] = {"light","brighten"},
+		["Level"] = 3,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Range",
+				["Type"] = "number",
+				["Default"] = 8,
+			},
+			{
+				["Name"] = "Brightness",
+				["Type"] = "number",
+				["Default"] = 1,
+			},
+		},
+		["Description"] = "Adds a pointlight to players character",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local Range = 8
+				local Brightness = 1
+				if Token[3] and tonumber(Token[3]) then
+					Range = tonumber(Token[3])
+				end
+				if Token[4] and tonumber(Token[4]) then
+					Brightness = tonumber(Token[4])
+				end
+				if Range < 0 then
+					Notify(Caller,"Using minimum range of 0",Color3.fromRGB(255,170,0))
+					Range = 0
+				elseif Range > 60 then
+					Notify(Caller,"Using maximum range of 60",Color3.fromRGB(255,170,0))
+					Range = 60
+				end
+				if Brightness < 0 then
+					Notify(Caller,"Using minimum brightness of 0",Color3.fromRGB(255,170,0))
+					Brightness = 0
+				end
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Torso = GetTorso(Char)
+					if Torso then
+						local Light = Torso:FindFirstChild("CommandLight")
+						if not Light then
+							Light = Instance.new("PointLight",Torso)
+							Light.Name = "CommandLight"
+						end
+						Light.Range = Range
+						Light.Brightness = Brightness
+					end
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Unlight",
+		["Commands"] = {"unlight","darken","unbrighten"},
+		["Level"] = 3,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Undoes light command",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Torso = GetTorso(Char)
+					if Torso then
+						local Light = Torso:FindFirstChild("CommandLight")
+						if Light then
+							Light:destroy()
 						end
 					end
 				end
