@@ -978,16 +978,49 @@ local Commands = {
 				["Default"] = 100,
 			},
 		},
-		["Description"] = "Sets player health value",
+		["Description"] = "Sets player health value. Increases max health if desired value is too high",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
-				local Health = 100
+				local Health
 				if Token[3] and tonumber(Token[3]) then
 					Health = tonumber(Token[3])
 				end
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					Char.Humanoid.Health = Health
+					if Health and Health > Char.Humanoid.MaxHealth then
+						Char.Humanoid.MaxHealth = Health
+					end
+					Char.Humanoid.Health = Health or Char.Humanoid.MaxHealth
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Set Max Health",
+		["Commands"] = {"maxhealth","setmaxhealth"},
+		["Level"] = 3,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Max Health",
+				["Type"] = "number",
+				["Default"] = 100,
+			},
+		},
+		["Description"] = "Sets player max health value",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local MaxHealth = 100
+				if Token[3] and tonumber(Token[3]) then
+					MaxHealth = tonumber(Token[3])
+				end
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					Char.Humanoid.MaxHealth = MaxHealth
 				end
 			end
 		end,
