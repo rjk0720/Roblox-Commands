@@ -1,6 +1,6 @@
 --Basic admin script by Haggie125
 --Put this script in ServerScriptService for best results
-local Version = "1.5.1"
+local Version = "1.5.2 WIP"
 
 --Configuration
 --------
@@ -59,6 +59,10 @@ Player targets are not case sensitive and can be:
 	- "others" - Everyone besides the speaker
 
 Changelog:
+1.5.2 (?)
+- Notification gui size accounts for leaderstats
+- Added maxhealth command
+- Changed jump command to have configurable height
 1.5.1 (4/7/2018):
 - Adjusted fly command
 - Removed warnings for single-letter unknown commands
@@ -339,6 +343,19 @@ function GetPlayerTorso(Player)
 	return Torso
 end
 
+function GetHumanoid(Char)
+	return Char:FindFirstChild("Humanoid")
+end
+
+function GetPlayerHumanoid(Player)
+	local Humanoid
+	local Char = Player.Character
+	if Char then
+		Humanoid = Char:FindFirstChild("Humanoid")
+	end
+	return Humanoid
+end
+
 function AdminLevel(Player)
 	local Level = nil
 	for Lvl,List in pairs(AdminList) do
@@ -469,7 +486,7 @@ local Commands = {
 			if Token[2] then
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Humanoid = GetHumanoid(Char)
 					if Humanoid then
 						Humanoid.Health = 0
 					end
@@ -569,7 +586,7 @@ local Commands = {
 			if Token[2] then
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Humanoid = GetHumanoid(Char)
 					if Humanoid then
 						Humanoid.Sit = true
 					end
@@ -623,7 +640,7 @@ local Commands = {
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
 					coroutine.resume(coroutine.create(function()
-						local Humanoid = Char:FindFirstChild("Humanoid")
+						local Humanoid = GetHumanoid(Char)
 						local Torso = GetTorso(Char)
 						if Humanoid and Torso then
 							if Token[3] and tonumber(Token[3]) then
@@ -659,7 +676,7 @@ local Commands = {
 			if Token[2] then
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Humanoid = GetHumanoid(Char)
 					if Humanoid then
 						Humanoid.PlatformStand = true
 					end
@@ -683,7 +700,7 @@ local Commands = {
 			if Token[2] then
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Humanoid = GetHumanoid(Char)
 					if Humanoid then
 						Humanoid.PlatformStand = false
 					end
@@ -990,10 +1007,13 @@ local Commands = {
 				end
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					if Health and Health > Char.Humanoid.MaxHealth then
-						Char.Humanoid.MaxHealth = Health
+					local Humanoid = GetHumanoid(Char)
+					if Humanoid then
+						if Health and Health > Humanoid.MaxHealth then
+							Humanoid.MaxHealth = Health
+						end
+						Humanoid.Health = Health or Humanoid.MaxHealth
 					end
-					Char.Humanoid.Health = Health or Char.Humanoid.MaxHealth
 				end
 			end
 		end,
@@ -1023,7 +1043,10 @@ local Commands = {
 				end
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					Char.Humanoid.MaxHealth = MaxHealth
+					local Humanoid = GetHumanoid(Char)
+					if Humanoid then
+						Humanoid.MaxHealth = MaxHealth
+					end
 				end
 			end
 		end,
@@ -1053,7 +1076,10 @@ local Commands = {
 				end
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					Char.Humanoid.Health = Char.Humanoid.Health - Damage
+					local Humanoid = GetHumanoid(Char)
+					if Humanoid then
+						Humanoid.Health = Humanoid.Health - Damage
+					end
 				end
 			end
 		end,
@@ -1080,7 +1106,7 @@ local Commands = {
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
 					coroutine.resume(coroutine.create(function()
-						local Humanoid = Char:FindFirstChild("Humanoid")
+						local Humanoid = GetHumanoid(Char)
 						local Torso = GetTorso(Char)
 						if Humanoid and Torso then
 							local Angle = math.random(0,359)
@@ -1142,7 +1168,7 @@ local Commands = {
 				end
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Humanoid = GetHumanoid(Char)
 					local Torso = GetTorso(Char)
 					if Humanoid and Torso then
 						local Force = Torso:FindFirstChild("FloatForce")
@@ -1151,7 +1177,7 @@ local Commands = {
 							Force.Name = "FloatForce"
 							Force.MaxForce = Vector3.new(0,100000,0)
 						end
-						Force.Position = Vector3.new(0,(Char.HumanoidRootPart.CFrame.y + Height),0)
+						Force.Position = Vector3.new(0,(Torso.Position.y + Height),0)
 						Force.Parent = Torso
 					end
 				end
@@ -1183,7 +1209,7 @@ local Commands = {
 				end
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Humanoid = GetHumanoid(Char)
 					local Torso = GetTorso(Char)
 					if Humanoid and Torso then
 						local Force = Torso:FindFirstChild("FloatForce")
@@ -1215,7 +1241,7 @@ local Commands = {
 			if Token[2] then
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Humanoid = GetHumanoid(Char)
 					local Torso = GetTorso(Char)
 					if Humanoid and Torso then
 						local Force = Torso:FindFirstChild("FloatForce")
@@ -1244,7 +1270,7 @@ local Commands = {
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
 					coroutine.resume(coroutine.create(function()
-						local Humanoid = Char:FindFirstChild("Humanoid")
+						local Humanoid = GetHumanoid(Char)
 						local Torso = GetTorso(Char)
 						if Humanoid and Torso then
 							local Mass = GetTotalMass(Char)
@@ -1341,7 +1367,7 @@ local Commands = {
 				end
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Humanoid = GetHumanoid(Char)
 					if Humanoid then
 						Humanoid.WalkSpeed = tonumber(Token[3])
 					end
@@ -1590,7 +1616,7 @@ local Commands = {
 			if Token[2] and Token[3] and tonumber(Token[3]) then
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					local Humanoid = Char:FindFirstChild("Humanoid")
+					local Humanoid = GetHumanoid(Char)
 					if Humanoid then
 						local PrevScale = 1
 						local Scale = {
@@ -2105,7 +2131,7 @@ local Commands = {
 					end
 					local Torso = GetPlayerTorso(Player)
 					if Torso then
-						local Humanoid = Torso.Parent:FindFirstChild("Humanoid")
+						local Humanoid = GetPlayerHumanoid(Player)
 						if Humanoid then
 							Torso.Anchored = false
 							Humanoid.PlatformStand = false
