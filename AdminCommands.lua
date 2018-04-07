@@ -612,30 +612,33 @@ local Commands = {
 				["Default"] = nil,
 			},
 			{
-				["Name"] = "Speed",
+				["Name"] = "Height",
 				["Type"] = "number",
-				["Default"] = nil,
+				["Default"] = 6.37,
 			},
 		},
-		["Description"] = "Makes player jump with optional vertical speed",
+		["Description"] = "Makes player jump with optional max height",
 		["Function"] = function(Caller,Token)
 			if Token[2] then
 				local CharList = GetCharList(Caller,Token[2])
 				for _,Char in pairs(CharList) do
-					local Humanoid = Char:FindFirstChild("Humanoid")
-					local Torso = GetTorso(Char)
-					if Humanoid and Torso then
-						if Token[3] and tonumber(Token[3]) then
-							local Speed = tonumber(Token[3])
-							local Force = Instance.new("BodyVelocity")
-							Force.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
-							Force.Velocity = Vector3.new(0,Speed,0)
-							Force.Parent = Torso
-							Debris:AddItem(Force,0.1)
-						else
+					coroutine.resume(coroutine.create(function()
+						local Humanoid = Char:FindFirstChild("Humanoid")
+						local Torso = GetTorso(Char)
+						if Humanoid and Torso then
+							if Token[3] and tonumber(Token[3]) then
+								--Determine starting velocity based on desired height
+								local Height = tonumber(Token[3])
+								local Gravity = 196.2
+								--Equation by RegularTetragon
+								Humanoid.JumpPower = math.sqrt(2 * Gravity * Height)
+							end
+							
 							Humanoid.Jump = true
+							wait()
+							Humanoid.JumpPower = 50 --Reset to default
 						end
-					end
+					end))
 				end
 			end
 		end,
