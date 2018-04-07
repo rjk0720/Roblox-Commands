@@ -1,6 +1,6 @@
 --Basic admin script by Haggie125
 --Put this script in ServerScriptService for best results
-local Version = "1.5 WIP"
+local Version = "1.5.1"
 
 --Configuration
 --------
@@ -13,6 +13,8 @@ local AdminList = {
 	[2] = {},
 	--Level 3 admins (Only fun commands)
 	[3] = {},
+	
+	--Commands with level 4+ can be used by anyone --ToDo
 }
 --Players who won't be allowed to join the game (Username or ID)(UserIDs are better)
 local ScriptBanList = {}
@@ -57,7 +59,10 @@ Player targets are not case sensitive and can be:
 	- "others" - Everyone besides the speaker
 
 Changelog:
-1.5 (?):
+1.5.1 (4/7/2018):
+- Adjusted fly command
+- Removed warnings for single-letter unknown commands
+1.5 (4/6/2018):
 - Added commands gui
 - Added permission levels
 - Added preloaded music list
@@ -80,7 +85,7 @@ ToDo:
 - Trello admin list
 - Move jail model to script (and fix it)
 - Simplify Trello token/keys
-- Edit trello ban accuracy
+- Increase trello ban accuracy
 - Add admin/nonadmin/random/etc as player targets
 - Custom command hotkey?
 - Add gui shortcuts for undo-commands
@@ -96,6 +101,8 @@ ToDo Commands:
 - Teleport to mouse command
 - Repeat last command command
 - Join player in another server command
+- Mute player command
+- Expand fly command
 - Bunch more commands
 
 --]]
@@ -1975,7 +1982,7 @@ local Commands = {
 				local PlayerList = GetPlayerList(Caller,Token[2])
 				for _,Player in pairs(PlayerList) do
 					if not Player.Backpack:FindFirstChild("Fly") then
-						Notify(Player,"Press [X] to toggle flight")
+						--Notify(Player,"Press [X] to toggle flight")
 						local FlyScript = script.LocalScripts.Fly:Clone()
 						FlyScript.Parent = Player.Backpack
 					end
@@ -1983,7 +1990,6 @@ local Commands = {
 			end
 		end,
 	},
-	--[[
 	{
 		["Name"] = "Land",
 		["Commands"] = {"land","unfly"},
@@ -2003,11 +2009,20 @@ local Commands = {
 					if Player.Backpack:FindFirstChild("Fly") then
 						Player.Backpack.Fly:destroy()
 					end
+					--local Torso = GetPlayerTorso(Player)
+					local Char = Player.Character
+					if Char and Char:FindFirstChild("HumanoidRootPart") then
+						if Char.HumanoidRootPart:FindFirstChild("FlyGyro") then
+							Char.HumanoidRootPart.FlyGyro:destroy()
+						end
+						if Char.HumanoidRootPart:FindFirstChild("FlyVel") then
+							Char.HumanoidRootPart.FlyVel:destroy()
+						end
+					end
 				end
 			end
 		end,
 	},
-	--]]
 	{
 		["Name"] = "Noclip",
 		["Commands"] = {"noclip"},
@@ -2467,7 +2482,9 @@ function Chat(Player,Message)
 					if Found then break end
 				end
 				if not Found then
-					Notify(Player,"Unknown command: "..Token[1],Color3.fromRGB(255,170,0))
+					if Token[1]:len() > 1 then --Ignore stuff like :D
+						Notify(Player,"Unknown command: "..Token[1],Color3.fromRGB(255,170,0))
+					end
 				end
 			end
 		end

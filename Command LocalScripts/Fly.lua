@@ -12,44 +12,42 @@ local Humanoid = Char:WaitForChild("Humanoid")
 
 local Resistance = 0.6 --Percentage of velocity lost per second
 local Acceleration = 75 --sps^2
-local Flying = true
-local Coupled = true --Always try to go in the direction we're looking
+local Flying = true --X toggle disabled
+local Coupled = true --Always try to go in the direction we're looking --ToDo
+local LastTick = tick()
 
 local Gyro = Root:FindFirstChild("FlyGyro")
-if not Gyro then
-	Gyro = Instance.new("BodyGyro")
-	Gyro.Name = "FlyGyro"
-	Gyro.maxTorque = Vector3.new(1000,1000,1000)
-	Gyro.cframe = Root.CFrame
-	Gyro.Parent = Root
-end
-
 local Vel = Root:FindFirstChild("FlyVel")
-if not Vel then
-	Vel = Instance.new("BodyVelocity")
-	Vel.Name = "FlyVel"
-	Vel.velocity = Vector3.new(0,15,0) --Jump start
-	Vel.maxForce = Vector3.new(9e9,9e9,9e9)
-	Vel.Parent = Root
-end
 
 function FlyStart()
 	Flying = true
 	Humanoid.Sit = true
+	LastTick = tick()
 	
-	Gyro.maxTorque = Vector3.new(1000,1000,1000)
-	Gyro.cframe = Root.CFrame
-	Vel.velocity = Vector3.new(0,15,0) --Jump start
-	Vel.maxForce = Vector3.new(9e9,9e9,9e9)
+	if not Gyro then
+		Gyro = Instance.new("BodyGyro")
+		Gyro.Name = "FlyGyro"
+		Gyro.maxTorque = Vector3.new(1000,1000,1000)
+		Gyro.cframe = Root.CFrame
+		Gyro.Parent = Root
+	end
+	if not Vel then
+		Vel = Instance.new("BodyVelocity")
+		Vel.Name = "FlyVel"
+		Vel.velocity = Vector3.new(0,15,0) --Jump start
+		Vel.maxForce = Vector3.new(9e9,9e9,9e9)
+		Vel.Parent = Root
+	end
 end
 
 function FlyEnd()
 	Flying = false
 	Humanoid.Sit = false
 	
-	Gyro.maxTorque = Vector3.new(0,0,0)
-	Vel.velocity = Vector3.new(0,0,0)
-	Vel.maxForce = Vector3.new(0,0,0)
+	if Gyro then Gyro:destroy() end
+	if Vel then Vel:destroy() end
+	Gyro = nil
+	Vel = nil
 end
 
 local w = false
@@ -75,11 +73,13 @@ InputService.InputBegan:connect(function(Key)
 	elseif Key.KeyCode == Enum.KeyCode.Z then
 		Coupled = not Coupled
 	elseif Key.KeyCode == Enum.KeyCode.X then
+		--[[
 		if Flying then
 			FlyEnd()
 		else
 			FlyStart()
 		end
+		--]]
 	end
 end)
 
@@ -107,18 +107,17 @@ end)
 
 FlyStart()
 
-local LastTick = tick()
 while wait() do
 	if Flying then
 		local TimeElapsed = tick() - LastTick
 		
-		local Forward = Root.CFrame.lookVector
-		local Right = Root.CFrame.rightVector
-		local Up = Root.CFrame.upVector
+		local Forward = Cam.CFrame.lookVector
+		local Right = Cam.CFrame.rightVector
+		local Up = Cam.CFrame.upVector
 		
 		--Lock controls to the horizontal plane
-		--local Forward = (Root.CFrame.lookVector - Vector3.new(0,Root.CFrame.lookVector.y,0)).unit
-		--local Right = (Root.CFrame.rightVector - Vector3.new(0,Root.CFrame.lookVector.y,0)).unit
+		--local Forward = (Cam.CFrame.lookVector - Vector3.new(0,Cam.CFrame.lookVector.y,0)).unit
+		--local Right = (Cam.CFrame.rightVector - Vector3.new(0,Cam.CFrame.lookVector.y,0)).unit
 		--local Up = Vector3.new(0,1,0)
 		
 		if w and not s then
