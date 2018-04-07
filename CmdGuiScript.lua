@@ -15,7 +15,7 @@ local Commands = {}
 local Prefixes = {}
 local Players = {}
 local Minimized = false
-local ScreenPos = UDim2.new(0.5,0,0.5,0)
+local ScreenPos = UDim2.new(0.5,-400,0.5,-225)
 local Shift = false
 local Ctrl = false
 local Resizing = false
@@ -29,6 +29,10 @@ local TweenConfig = TweenInfo.new(
 	Enum.EasingStyle.Quad,
 	Enum.EasingDirection.InOut
 )
+
+if Main.Position.Y.Scale > 1 then
+	Minimized = true
+end
 
 --Functions
 --------
@@ -86,9 +90,9 @@ function SelectCommand(TargetEntry)
 				for _,Command in pairs(Info.Commands) do
 					CommandText = CommandText..Prefixes[1]..Command.." "
 				end
-				Container.Level.Text = Info.Level
+				Container.LevelLabel.Level.Text = Info.Level
 				Container.LevelLabel.Visible = true
-				Container.Level.Visible = true
+				Container.LevelLabel.Level.Visible = true
 				Container.Commands.Text = CommandText
 				Container.Description.Text = Info.Description
 			end
@@ -96,7 +100,7 @@ function SelectCommand(TargetEntry)
 	else
 		--Nothing selected
 		Container.LevelLabel.Visible = false
-		Container.Level.Visible = false
+		Container.LevelLabel.Level.Visible = false
 		Container.Commands.Text = "Select a command"
 		Container.Description.Text = ""
 	end
@@ -147,17 +151,17 @@ function UpdatePlayerList()
 				local NewSelected = not Players[Player]
 				Players[Player] = NewSelected
 				if NewSelected then
-					Entry.CheckBox.Text = "X"
+					Entry.CheckBox.Label.Text = "X"
 				else
-					Entry.CheckBox.Text = ""
+					Entry.CheckBox.Label.Text = ""
 				end
 			end)
 		end
 		
 		if Selected then
-			Entry.CheckBox.Text = "X"
+			Entry.CheckBox.Label.Text = "X"
 		else
-			Entry.CheckBox.Text = ""
+			Entry.CheckBox.Label.Text = ""
 		end
 	end
 end
@@ -302,7 +306,8 @@ Events.NewCommandList.OnClientEvent:connect(function(PrefixList,CommandList)
 		Entry.Label.Text = Info.Name
 		Entry.Command.Text = Prefixes[1]..Info.Commands[1]
 		Entry.Parent = Container
-		Entry.Command.Position = UDim2.new(0,Entry.Label.TextBounds.x + 10,0,0)
+		--Entry.Command.Position = UDim2.new(0,Entry.Label.TextBounds.x + 10,0,0)
+		Entry.Command.Position = UDim2.new(((Entry.Label.TextBounds.x + 10) / Entry.AbsoluteSize.x),0,0.125,0)
 		Entry.Visible = true
 		Counter = Counter + 1
 		
@@ -426,6 +431,27 @@ Mouse.Move:connect(function()
 		local SizeX = SizeStartX + MouseChangeX
 		local SizeY = SizeStartY + MouseChangeY
 		Main.Size = UDim2.new(0,SizeX,0,SizeY)
+		
+		--Resize some non-automatic text stuff
+		local Container = Main.Search
+		Container.Reset.Size = UDim2.new(0,-Container.Reset.AbsoluteSize.y,1,0)
+		local Container = Main.Description.ScrollingFrame
+		Container.Description.TextSize = Container.Commands.TextBounds.y
+		Container.LevelLabel.Level.Position = UDim2.new(0,Container.LevelLabel.TextBounds.x + (5 * Container.LevelLabel.TextBounds.y / 24),0,0)
+		local Container = Main.CommandList.ScrollingFrame
+		for _,Item in pairs(Container:GetChildren()) do
+			if Item.ClassName == "Frame" and Item.Name ~= "Template" then
+				Item.Size = UDim2.new(1,-18,0,Item.AbsoluteSize.x / 8)
+				--Item.Command.Position = UDim2.new(0,Item.Label.TextBounds.x + 10,0.125,0)
+			end
+		end
+		local Container = Main.PlayerList.ScrollingFrame
+		for _,Item in pairs(Container:GetChildren()) do
+			if Item.ClassName == "Frame" and Item.Name ~= "Template" then
+				Item.Size = UDim2.new(1,-18,0,Item.AbsoluteSize.x / 5.785)
+				Item.Label.Position = UDim2.new(0,Item.CheckBox.AbsoluteSize.x * 1.3,0,0)
+			end
+		end
 	end
 end)
 
