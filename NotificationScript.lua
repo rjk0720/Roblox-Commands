@@ -61,7 +61,7 @@ function AdjustPositions()
 		TweenService:Create(Item.Label,Info,Goal):Play()
 	end
 	--Frame size
-	local Goal = {["Size"] = UDim2.new(1,-548,0,#Notifications * 26)}
+	local Goal = {["Size"] = UDim2.new(-0.7,174,0,#Notifications * 26)}
 	TweenService:Create(Frame,Info,Goal):Play()
 end
 
