@@ -450,6 +450,14 @@ function Notify(Player,Message,Color,Time)
 	end
 end
 
+function AddLocalScript(Player,Name)
+	local Backpack = Player:FindFirstChild("Backpack")
+	if Backpack and not Player.Backpack:FindFirstChild(Name) then
+		local NewScript = script.LocalScripts:FindFirstChild(Name)
+		NewScript:Clone().Parent = Backpack
+	end
+end
+
 local Commands = {
 	{
 		["Name"] = "Temp Admin",
@@ -1672,6 +1680,27 @@ local Commands = {
 		end,
 	},
 	{
+		["Name"] = "Mouse Teleport",
+		["Commands"] = {"tpm","mtp","mousetp"},
+		["Level"] = 3,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Teleports player to their mouse",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					AddLocalScript(Player,"MouseTeleport")
+				end
+			end
+		end,
+	},
+	{
 		["Name"] = "Scale Character",
 		["Commands"] = {"resize","size","scale"},
 		["Level"] = 3,
@@ -2119,11 +2148,7 @@ local Commands = {
 			if Token[2] then
 				local PlayerList = GetPlayerList(Caller,Token[2])
 				for _,Player in pairs(PlayerList) do
-					if not Player.Backpack:FindFirstChild("Fly") then
-						--Notify(Player,"Press [X] to toggle flight")
-						local FlyScript = script.LocalScripts.Fly:Clone()
-						FlyScript.Parent = Player.Backpack
-					end
+					AddLocalScript(Player,"Fly")
 				end
 			end
 		end,
@@ -2177,10 +2202,7 @@ local Commands = {
 			if Token[2] then
 				local PlayerList = GetPlayerList(Caller,Token[2])
 				for _,Player in pairs(PlayerList) do
-					if not Player.Backpack:FindFirstChild("NoClip") then
-						local ClipScript = script.LocalScripts.NoClip:Clone()
-						ClipScript.Parent = Player.Backpack
-					end
+					AddLocalScript(Player,"NoClip")
 				end
 			end
 		end,
@@ -2426,9 +2448,7 @@ local Commands = {
 			if Token[2] then
 				local PlayerList = GetPlayerList(Caller,Token[2])
 				for _,Player in pairs(PlayerList) do
-					local CamScript = script.LocalScripts.Freecam:Clone()
-					CamScript.Parent = Player.Backpack
-					CamScript.Disabled = false
+					AddLocalScript(Player,"Freecam")
 				end
 			end
 		end,
@@ -2449,9 +2469,7 @@ local Commands = {
 			if Token[2] then
 				local PlayerList = GetPlayerList(Caller,Token[2])
 				for _,Player in pairs(PlayerList) do
-					local resetScript = script.LocalScripts.Resetcam:Clone()
-					resetScript.Parent = Player.Backpack
-					resetScript.Disabled = false
+					AddLocalScript(Player,"ResetCam")
 				end
 			end
 		end,
@@ -2472,8 +2490,7 @@ local Commands = {
 			if Token[2] then
 				local PlayerList = GetPlayerList(Caller,Token[2])
 				for _,Player in pairs(PlayerList) do
-					local GuiScript = script.LocalScripts.HideGuis:Clone()
-					GuiScript.Parent = Player.Backpack
+					AddLocalScript(Player,"HideGuis")
 				end
 			end
 		end,
