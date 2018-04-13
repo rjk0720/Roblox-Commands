@@ -590,6 +590,42 @@ local Commands = {
 		end,
 	},
 	{
+		["Name"] = "Remove Tools",
+		["Commands"] = {"rmtools","removetools"},
+		["Level"] = 3,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Removes all tools in players backpack",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				for _,Player in pairs(PlayerList) do
+					local Backpack = Player:FindFirstChild("Backpack")
+					if Backpack then
+						for _,Item in pairs(Backpack:GetChildren()) do
+							if Item.ClassName == "Tool" or Item.ClassName == "Hopperbin" then
+								Item:destroy()
+							end
+						end
+					end
+					local Char = Player.Character
+					if Char then
+						for _,Item in pairs(Char:GetChildren()) do
+							if Item.ClassName == "Tool" or Item.ClassName == "Hopperbin" then
+								Item:destroy()
+							end
+						end
+					end
+				end
+			end
+		end,
+	},
+	{
 		["Name"] = "Respawn",
 		["Commands"] = {"respawn","spawn"},
 		["Level"] = 3,
@@ -2453,6 +2489,32 @@ local Commands = {
 				DebrisList[i]:Destroy()
 			end
 			DebrisList = {}
+		end,
+	},
+	{
+		["Name"] = "Shutdown Server",
+		["Commands"] = {"shutdown","killserver"},
+		["Level"] = 2,
+		["Args"] = {
+			{
+				["Name"] = "Message",
+				["Type"] = "string",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Shuts down the current server with optional message",
+		["Function"] = function(Caller,Token)
+			--Just kick everyone forever until the server shuts down
+			local Message = Token[2]
+			if not Message then
+				Message = "Server shut down via in-game command"
+			end
+			for _,Player in pairs(game.Players:GetChildren()) do
+				Player:Kick(Message)
+			end
+			game.Players.PlayerAdded:connect(function(Player)
+				Player:Kick(Message)
+			end)
 		end,
 	},
 	{
