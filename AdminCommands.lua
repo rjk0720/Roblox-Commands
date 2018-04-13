@@ -1,6 +1,6 @@
 --Basic admin script by Haggie125
 --Put this script in ServerScriptService for best results
-local Version = "1.5.2 WIP"
+local Version = "1.6 WIP"
 
 --Configuration
 --------
@@ -27,11 +27,22 @@ local FilterNotifications = false --ToDo
 --Commands gui is open by default?
 local ShowGuiAtStart = false
 
---Optional Trello banlist
+--Optional Trello banlist and adminlist
 --Follow the instructions in the TrelloAPI module script to set up your key/token
+--Card names can contain usernames or userIds, separated by commas
+--Card description contains additional JSON info
+
+--Example Banlist Card:
+--	Name: exampleman,7925310
+--	Description: {"Reason":"as an example","EndTime":1528387409,"IssuedBy":"Haggie125"}
+
+--Example Adminlist Card:
+--	Name: exampleman,7925310
+--  Description: {"Level":"1"}
+
+local TrelloEnabled = false
 local TrelloBoardName = "Your Banlist"
---Card name can contain usernames or userIds, separated by commas (ex: exampleman,7925310)
---Card description is JSON info, example: {"Reason":"as an example","EndTime":1528387409,"IssuedBy":"Haggie125"}
+local AdminListName = "Administrators"
 local BanListName = "Banned Users"
 --Additional info given to banned players
 local BanInfo = ":D"
@@ -59,10 +70,14 @@ Player targets are not case sensitive and can be:
 	- "others" - Everyone besides the speaker
 
 Changelog:
-1.5.2 (?)
+1.6 (?)
+- Added trello adminlist
+- Made trello banlist cooldown less awful (ToDo)
 - Notification gui size accounts for leaderstats
-- Added maxhealth command
 - Changed jump command to have configurable height
+- Added maxhealth command
+- Added removetools command
+- Added shutdown command
 1.5.1 (4/7/2018):
 - Adjusted fly command
 - Removed warnings for single-letter unknown commands
@@ -98,10 +113,7 @@ ToDo:
 - Keybind commands
 ToDo Commands:
 - Disco command
-- Remove tools command
-- Set max health command
 - More ambient commands
-- Shutdown server command
 - Teleport to mouse command
 - Repeat last command command
 - Join player in another server command
@@ -120,16 +132,15 @@ local DataStore = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 
 local Trello
-local BanBoardID
+local TrelloBoardID
 local BannedUserList
+local AdminUserList
 
-local TrelloEnabled = false
-if TrelloBoardName and TrelloBoardName ~= "" and TrelloBoardName ~= "Your Banlist" then
-	TrelloEnabled = true
-	
+if TrelloEnabled then
 	Trello = require(script.TrelloAPI)
-	BanBoardID = Trello:GetBoardID(TrelloBoardName)
-	BannedUserList = Trello:GetListID(BanListName,BanBoardID)
+	TrelloBoardID = Trello:GetBoardID(TrelloBoardName)
+	BannedUserList = Trello:GetListID(BanListName,TrelloBoardID)
+	AdminUserList = Trello:GetListID(AdminListName,TrelloBoardID)
 end
 
 local CommandGui = script:WaitForChild("BasicCommands")
@@ -138,6 +149,7 @@ if not ShowGuiAtStart then
 	CommandGui.Main.Position = UDim2.new(0.5,-400,1.2,0)
 end
 local TrelloBanList = {}
+local TrelloAdminList = {}
 local Jailed = {}
 local DebrisList = {}
 
@@ -209,7 +221,7 @@ function CheckBanned(Player)
 		local EndTime = Item.EndTime
 		local Days
 		if EndTime then
-			Days = math.ceil((EndTime - tick())/86400)
+			Days = math.ceil((EndTime - os.time())/86400)
 		end
 		if Check(Name) then
 			local Message = "You are banned from this game"
@@ -357,11 +369,39 @@ function GetPlayerHumanoid(Player)
 end
 
 function AdminLevel(Player)
+	local function Check(Name)
+		--Name can be a list separated by commas
+		local NameList = {}
+		for Word in string.gmatch(Name,"[^%s,]+") do
+			table.insert(NameList,Word)
+		end
+		
+		for _,Name in pairs(NameList) do
+			if tonumber(Name) then
+				if tonumber(Name) == Player.userId then
+					return true
+				end
+			end
+			if Name == Player.Name then
+				return true
+			end
+		end
+	end
+	
 	local Level = nil
 	for Lvl,List in pairs(AdminList) do
 		for _,Entry in pairs(List) do
 			if Entry == Player.Name or tonumber(Entry) == Player.UserId then
 				Level = Lvl
+				break
+			end
+		end
+		if Level then break end
+	end
+	for Lvl,List in pairs(TrelloAdminList) do
+		for _,Entry in pairs(List) do
+			if Check(Entry.Name) then
+				Level = tonumber(Entry.Level)
 				break
 			end
 		end
@@ -1479,7 +1519,7 @@ local Commands = {
 				if Token[3] then
 					Days = tonumber(Token[3])
 				end
-				local EndTime = math.ceil(tick() + (Days * 86400))
+				local EndTime = math.ceil(os.time() + (Days * 86400))
 				if Token[4] then
 					Reason = ""
 					for i=4,#Token do
@@ -2636,27 +2676,40 @@ end)
 
 UpdatePlayerLists()
 
---Check all-mighty trello banlist every minute
+--Check trello banlist/adminlist every minute
 local BanBoardID
 if TrelloEnabled then
 	BanBoardID = Trello:GetBoardID(TrelloBoardName)
 end
-function UpdateTrelloBanlist()
+function UpdateTrello()
 	TrelloBanList = {}
+	TrelloAdminList = {}
 	
-	local Cards = Trello:GetCardsInList(BannedUserList)
-	for _,Card in pairs(Cards) do
+	local BanCards = Trello:GetCardsInList(BannedUserList)
+	for _,Card in pairs(BanCards) do
 		local CardInfo = Card.desc
 		local Success,Message = pcall(function()
-			CardInfo = HttpService:JSONDecode(CardInfo) --IssuedBy, Reason, EndTime
+			CardInfo = HttpService:JSONDecode(CardInfo) --Reason, IssuedBy, Days, EndTime
 		end)
 		if not Success then
 			CardInfo = {}
 		end
 		CardInfo.Name = Card.name
 		
+		--Convert Days to EndTime if needed
+		if not CardInfo.EndTime and CardInfo.Days then
+			local EndTime = math.ceil(os.time() + (tonumber(CardInfo.Days) * 86400))
+			local Success,Message = pcall(function()
+				local NewCardInfo = HttpService:JSONEncode(CopyTable(Card.desc))
+				local CardId = Trello:GetCardID(CardInfo.name,TrelloBoardID)
+				Trello:EditCard(CardId,Card.name,NewCardInfo,BannedUserList)
+			end)
+			if not Success then
+				print("Error editing card: "..Message)
+			end
+		end
 		--Ban still in effect?
-		if CardInfo.EndTime and CardInfo.EndTime <= tick() then
+		if CardInfo.EndTime and CardInfo.EndTime <= os.time() then
 			--Delete this record
 			local Success,Message = pcall(function()
 				local CardID = Trello:GetCardID(Card.name,BanBoardID)
@@ -2667,6 +2720,20 @@ function UpdateTrelloBanlist()
 		end
 	end
 	
+	local AdminCards = Trello:GetCardsInList(AdminUserList)
+	for _,Card in pairs(AdminCards) do
+		local CardInfo = Card.desc
+		local Success,Message = pcall(function()
+			CardInfo = HttpService:JSONDecode(CardInfo) --Level
+		end)
+		if not Success then
+			CardInfo = {}
+		end
+		CardInfo.Name = Card.name
+		
+		table.insert(TrelloAdminList,CardInfo)
+	end
+	
 	for _,Player in pairs(game.Players:GetChildren()) do
 		CheckBanned(Player) --Will kick them if banned
 	end
@@ -2674,7 +2741,7 @@ end
 
 if TrelloEnabled then
 	while true do
-		UpdateTrelloBanlist()
+		UpdateTrello()
 		wait(60)
 	end
 end
