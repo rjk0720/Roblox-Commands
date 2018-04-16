@@ -3,6 +3,7 @@ local RunService = game:GetService("RunService")
 
 local Player = game.Players.LocalPlayer
 local Cam = game.Workspace.CurrentCamera
+local Mouse = Player:GetMouse()
 local Char = Player.Character
 if not Char or not Char.Parent then
     Char = Player.CharacterAdded:wait()
@@ -13,7 +14,7 @@ local Humanoid = Char:WaitForChild("Humanoid")
 local Resistance = 0.6 --Percentage of velocity lost per second
 local Acceleration = 75 --sps^2
 local Flying = true --X toggle disabled
-local Coupled = true --Always try to go in the direction we're looking --ToDo
+local Coupled = false --Always try to go in the direction we're looking
 local LastTick = tick()
 
 local Gyro = Root:FindFirstChild("FlyGyro")
@@ -56,52 +57,63 @@ local a = false
 local d = false
 local q = false
 local e = false
+local Brake = false
 
-InputService.InputBegan:connect(function(Key)
-	if Key.KeyCode == Enum.KeyCode.W then
-		w = true
-	elseif Key.KeyCode == Enum.KeyCode.S then
-		s = true
-	elseif Key.KeyCode == Enum.KeyCode.A then
-		a = true
-	elseif Key.KeyCode == Enum.KeyCode.D then
-		d = true
-	elseif Key.KeyCode == Enum.KeyCode.Q then
-		q = true
-	elseif Key.KeyCode == Enum.KeyCode.E then
-		e = true
-	elseif Key.KeyCode == Enum.KeyCode.Z then
-		Coupled = not Coupled
-	elseif Key.KeyCode == Enum.KeyCode.X then
-		--[[
-		if Flying then
-			FlyEnd()
-		else
-			FlyStart()
+InputService.InputBegan:connect(function(Key,gameProcessedEvent)
+	if not gameProcessedEvent then --Not chatting or something
+		if Key.KeyCode == Enum.KeyCode.W then
+			w = true
+		elseif Key.KeyCode == Enum.KeyCode.S then
+			s = true
+		elseif Key.KeyCode == Enum.KeyCode.A then
+			a = true
+		elseif Key.KeyCode == Enum.KeyCode.D then
+			d = true
+		elseif Key.KeyCode == Enum.KeyCode.Q then
+			q = true
+		elseif Key.KeyCode == Enum.KeyCode.E then
+			e = true
+		elseif Key.KeyCode == Enum.KeyCode.Z then
+			Coupled = not Coupled
+		elseif Key.KeyCode == Enum.KeyCode.X then
+			Brake = true
+		elseif Key.KeyCode == Enum.KeyCode.Space then
+			Brake = true
 		end
-		--]]
 	end
 end)
 
-InputService.InputEnded:connect(function(Key)
-	if Key.KeyCode == Enum.KeyCode.W then
-		w = false
-	elseif Key.KeyCode == Enum.KeyCode.S then
-		s = false
-	elseif Key.KeyCode == Enum.KeyCode.A then
-		a = false
-	elseif Key.KeyCode == Enum.KeyCode.D then
-		d = false
-	elseif Key.KeyCode == Enum.KeyCode.Q then
-		q = false
-	elseif Key.KeyCode == Enum.KeyCode.E then
-		e = false
+InputService.InputEnded:connect(function(Key,gameProcessedEvent)
+	if not gameProcessedEvent then --Not chatting or something
+		if Key.KeyCode == Enum.KeyCode.W then
+			w = false
+		elseif Key.KeyCode == Enum.KeyCode.S then
+			s = false
+		elseif Key.KeyCode == Enum.KeyCode.A then
+			a = false
+		elseif Key.KeyCode == Enum.KeyCode.D then
+			d = false
+		elseif Key.KeyCode == Enum.KeyCode.Q then
+			q = false
+		elseif Key.KeyCode == Enum.KeyCode.E then
+			e = false
+		elseif Key.KeyCode == Enum.KeyCode.X then
+			Brake = false
+		elseif Key.KeyCode == Enum.KeyCode.Space then
+			Brake = false
+		end
 	end
 end)
 
 RunService.RenderStepped:connect(function()
 	if Flying then
-		Gyro.cframe = Cam.CoordinateFrame
+		if Coupled then
+			--Face where we're looking/going
+			Gyro.cframe = Cam.CoordinateFrame
+		else
+			--Face the mouse I guess
+			Gyro.cframe = CFrame.new(Root.Position,Mouse.Hit.p)
+		end
 	end
 end)
 
@@ -111,14 +123,14 @@ while wait() do
 	if Flying then
 		local TimeElapsed = tick() - LastTick
 		
-		local Forward = Cam.CFrame.lookVector
-		local Right = Cam.CFrame.rightVector
-		local Up = Cam.CFrame.upVector
-		
 		--Lock controls to the horizontal plane
 		--local Forward = (Cam.CFrame.lookVector - Vector3.new(0,Cam.CFrame.lookVector.y,0)).unit
 		--local Right = (Cam.CFrame.rightVector - Vector3.new(0,Cam.CFrame.lookVector.y,0)).unit
 		--local Up = Vector3.new(0,1,0)
+		
+		local Forward = Cam.CFrame.lookVector
+		local Right = Cam.CFrame.rightVector
+		local Up = Cam.CFrame.upVector
 		
 		if w and not s then
 			Vel.velocity = Vel.velocity + (Forward * Acceleration * TimeElapsed)
@@ -136,8 +148,20 @@ while wait() do
 			Vel.velocity = Vel.velocity - (Up * Acceleration * TimeElapsed)
 		end
 		
-		--Slow down automatically (Air resistance)
-		Vel.velocity = Vel.velocity * (1 - (Resistance * TimeElapsed))
+		if Coupled then
+			--Fly like a plane, go where we're pointing
+			Vel.velocity = Root.CFrame.lookVector * Vel.velocity.magnitude
+		else
+			--More of a hovering style
+			
+		end
+		
+		--Slow down automatically (Air resistance) or with brake
+		if Brake then
+			Vel.velocity = Vel.velocity * (1 - (Resistance * TimeElapsed * 10))
+		else
+			Vel.velocity = Vel.velocity * (1 - (Resistance * TimeElapsed))
+		end
 		if Vel.velocity.magnitude < 0.1 then
 			Vel.velocity = Vector3.new(0,0,0)
 		end
