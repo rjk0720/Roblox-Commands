@@ -72,9 +72,10 @@ Player targets are not case sensitive and can be:
 Changelog:
 1.6 (?)
 - Added trello adminlist
-- Made trello banlist cooldown less awful (ToDo)
+- Made trello banlist cooldown easier to use
 - Notification gui size accounts for leaderstats
 - Changed jump command to have configurable height
+- Expanded fly command
 - Added maxhealth command
 - Added removetools command
 - Added shutdown command
@@ -119,6 +120,7 @@ ToDo Commands:
 - Join player in another server command
 - Mute player command
 - Expand fly command
+- Other effects commands
 - Bunch more commands
 
 --]]
@@ -1734,6 +1736,89 @@ local Commands = {
 						local ScaleChange = tonumber(Token[3])/PrevScale
 						for x=1,#Scale do
 							if Scale[x] then Scale[x].Value = tonumber(Token[3]) end
+						end
+					end
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Sparkle",
+		["Commands"] = {"sparkle","sparkles"},
+		["Level"] = 3,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Red",
+				["Type"] = "number",
+				["Default"] = "144",
+			},
+			{
+				["Name"] = "Green",
+				["Type"] = "number",
+				["Default"] = "25",
+			},
+			{
+				["Name"] = "Blue",
+				["Type"] = "number",
+				["Default"] = "255",
+			}
+		},
+		["Description"] = "Adds sparkles to players character",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local r = 144
+				local g = 25
+				local b = 255
+				if Token[3] and tonumber(Token[3]) then
+					r = tonumber(Token[3])
+				end
+				if Token[4] and tonumber(Token[4]) then
+					g = tonumber(Token[4])
+				end
+				if Token[5] and tonumber(Token[5]) then
+					b = tonumber(Token[5])
+				end
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Torso = GetTorso(Char)
+					if Torso then
+						local Sparkles = Torso:FindFirstChild("CommandSparkles")
+						if not Sparkles then
+							Sparkles = Instance.new("Sparkles",Torso)
+							Sparkles.Name = "CommandSparkles"
+						end
+						Sparkles.SparkleColor = Color3.fromRGB(r,g,b)
+					end
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Unsparkle",
+		["Commands"] = {"unsparkle","unsparkles"},
+		["Level"] = 3,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Undoes sparkle command",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Torso = GetTorso(Char)
+					if Torso then
+						local Sparkles = Torso:FindFirstChild("CommandSparkles")
+						if Sparkles then
+							Sparkles:destroy()
 						end
 					end
 				end
