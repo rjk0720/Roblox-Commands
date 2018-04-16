@@ -1743,6 +1743,109 @@ local Commands = {
 		end,
 	},
 	{
+		["Name"] = "Fire",
+		["Commands"] = {"fire","burn","ignite"},
+		["Level"] = 3,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Size",
+				["Type"] = "number",
+				["Default"] = "8",
+			},
+			{
+				["Name"] = "Heat",
+				["Type"] = "number",
+				["Default"] = "12",
+			},
+			{
+				["Name"] = "Red",
+				["Type"] = "number",
+				["Default"] = "236",
+			},
+			{
+				["Name"] = "Green",
+				["Type"] = "number",
+				["Default"] = "139",
+			},
+			{
+				["Name"] = "Blue",
+				["Type"] = "number",
+				["Default"] = "70",
+			}
+		},
+		["Description"] = "Sets player on fire",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local Size = 8
+				local Heat = 12
+				local r = 236
+				local g = 139
+				local b = 70
+				if Token[3] and tonumber(Token[3]) then
+					Size = tonumber(Token[3])
+				end
+				if Token[4] and tonumber(Token[4]) then
+					Heat = tonumber(Token[4])
+				end
+				if Token[5] and tonumber(Token[5]) then
+					r = tonumber(Token[5])
+				end
+				if Token[6] and tonumber(Token[6]) then
+					g = tonumber(Token[6])
+				end
+				if Token[7] and tonumber(Token[7]) then
+					b = tonumber(Token[7])
+				end
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Torso = GetTorso(Char)
+					if Torso then
+						local Fire = Torso:FindFirstChild("CommandFire")
+						if not Fire then
+							Fire = Instance.new("Fire",Torso)
+							Fire.Name = "CommandFire"
+						end
+						Fire.Size = Size
+						Fire.Heat = Heat
+						Fire.Color = Color3.fromRGB(r,g,b)
+					end
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Extinguish",
+		["Commands"] = {"unfire","extinguish"},
+		["Level"] = 3,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Undoes fire command",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local CharList = GetCharList(Caller,Token[2])
+				for _,Char in pairs(CharList) do
+					local Torso = GetTorso(Char)
+					if Torso then
+						local Fire = Torso:FindFirstChild("CommandFire")
+						if Fire then
+							Fire:destroy()
+						end
+					end
+				end
+			end
+		end,
+	},
+	{
 		["Name"] = "Sparkle",
 		["Commands"] = {"sparkle","sparkles"},
 		["Level"] = 3,
