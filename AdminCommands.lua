@@ -2684,6 +2684,196 @@ local Commands = {
 		end,
 	},
 	{
+		["Name"] = "Join",
+		["Commands"] = {"join","visit"},
+		["Level"] = 2,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "string",
+				["Default"] = "Exact Username",
+			},
+		},
+		["Description"] = "Joins the server of another player.",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				coroutine.resume(coroutine.create(function()
+				local function checkUserId(name)
+					userId = game.Players:GetUserIdFromNameAsync(name)
+				end
+				local success, message = pcall(function()
+					checkUserId(Token[2])
+				end)
+				if success then
+					local success2, message2, placeId, instanceId = game:GetService("TeleportService"):GetPlayerPlaceInstanceAsync(userId)
+					if placeId and instanceId then
+						local success3, message3 = pcall(function()
+							game:GetService("TeleportService"):TeleportToPlaceInstance(placeId,instanceId,Caller)
+						end)
+						if success3 then
+							print("Teleporting player..")
+						else
+							print("Teleporting error: "..message3)
+							Notify(Caller,("Teleporting error: "..message3),Color3.fromRGB(255,0,0))
+						end
+					else
+						print("Error getting place instance: "..message2)
+						Notify(Caller,("Error getting place instance: "..message2),Color3.fromRGB(0,255,0))
+					end
+				else
+					Notify(Caller,"User does not exist, check spelling.",Color3.fromRGB(255,0,0))
+				end
+				end))
+			end
+		end,
+	},
+	{
+		["Name"] = "Group Join", --uses Beta API 'TeleportPartyAsync', will probably fail most of the time.
+		["Commands"] = {"groupjoin","groupvisit","groupfollow"},
+		["Level"] = 2,
+		["Args"] = {
+			{
+				["Name"] = "Targets",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Target",
+				["Type"] = "string",
+				["Default"] = "Exact Username",
+			},
+		},
+		["Description"] = "Moves multiple people to the server of another player, providing there is room.",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				if PlayerList then
+					if Token[3] then
+						coroutine.resume(coroutine.create(function()
+							local function checkUserId(name)
+								userId = game.Players:GetUserIdFromNameAsync(name)
+							end
+							local success, message = pcall(function()
+								checkUserId(Token[3])
+							end)
+							if success then
+								local success2, message2, placeId, instanceId = game:GetService("TeleportService"):GetPlayerPlaceInstanceAsync(userId)
+								if placeId and instanceId then
+									game:GetService("TeleportService"):TeleportPartyAsync(placeId,PlayerList)
+								else
+									print("Error getting place instance: "..message2)
+									Notify(Caller,("Error getting place instance: "..message2),Color3.fromRGB(0,255,0))
+								end
+							else
+								Notify(Caller,"User does not exist, check spelling.",Color3.fromRGB(255,0,0))
+							end
+						end))
+					end
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Private Server",
+		["Commands"] = {"createserver","newserver","privateserver"},
+		["Level"] = 2,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+		},
+		["Description"] = "Moves one or more people to a new private server.",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				if PlayerList[1] then
+					local privateServerKey = game:GetService("TeleportService"):ReserveServer(game.PlaceId)
+					local function saveServerKey(player,serverKey)
+						local playerKey = (player.UserId.."_".."privateserverkey")
+						for i=1,5 do
+							local keySaved
+							local success,message = pcall(function()
+								keySaved = game:GetService("DataStoreService"):GetDataStore("BasicAdminPrivateServers"):SetAsync(playerKey,serverKey)
+							end)
+							if success then
+								return keySaved
+							else
+								Notify(Caller,("[Attempt "..i.."out of 3] Could not store private server key: "..message),Color3.fromRGB(255,0,0))
+								wait(3^i)
+							end
+						end
+					end
+					game:GetService("TeleportService"):TeleportToPrivateServer(game.PlaceId,privateServerKey,PlayerList)
+					for _,Player in pairs(PlayerList) do
+						Notify(Player,"Created server, attempting to teleport.",Color3.fromRGB(0,255,0))
+						saveServerKey(Player,privateServerKey)
+					end
+				end
+			end
+		end,
+	},
+	{
+		["Name"] = "Join Private Server",
+		["Commands"] = {"joinserver","joinprivateserver"},
+		["Level"] = 2,
+		["Args"] = {
+			{
+				["Name"] = "Target",
+				["Type"] = "target",
+				["Default"] = nil,
+			},
+			{
+				["Name"] = "Target",
+				["Type"] = "string",
+				["Default"] = "Exact Username",
+			},
+		},
+		["Description"] = "Tries to move players the private server of a user.",
+		["Function"] = function(Caller,Token)
+			if Token[2] then
+				local PlayerList = GetPlayerList(Caller,Token[2])
+				if Token[3] then
+					coroutine.resume(coroutine.create(function()
+						local function checkUserId(name)
+							userId = game.Players:GetUserIdFromNameAsync(name)
+						end
+						local success, message = pcall(function()
+							checkUserId(Token[3])
+						end)
+						if success then
+							local function loadServerKey(playerId)
+								local playerKey = (playerId.."_".."privateserverkey")
+								for i=1,4 do
+									local key
+									local success,message = pcall(function()
+										key = game:GetService("DataStoreService"):GetDataStore("BasicAdminPrivateServers"):GetAsync(playerKey)
+									end)
+									if success then
+										return key
+									else
+										Notify(Caller,("[Attempt "..i.."out of 3] Could not retrieve stored private server key: "..message),Color3.fromRGB(255,0,0))
+										wait(3^i)
+									end
+								end
+							end
+							local privateServerKey = loadServerKey(userId)
+							game:GetService("TeleportService"):TeleportToPrivateServer(game.PlaceId,privateServerKey,PlayerList)
+							for _,Player in pairs(PlayerList) do
+								Notify(Player,"Found server, attempting to teleport.",Color3.fromRGB(0,255,0))
+							end
+						else
+							for _,Player in pairs(PlayerList) do
+								Notify(Player,"Did not find user "..Token[3].." check spelling",Color3.fromRGB(255,0,0))
+							end
+						end
+					end))
+				end
+			end
+		end,
+	},
+	{
 		["Name"] = "Clean Server",
 		["Commands"] = {"clean","clear","cleanserver"},
 		["Level"] = 3,
