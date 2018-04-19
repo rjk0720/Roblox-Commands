@@ -2729,7 +2729,7 @@ local Commands = {
 	},
 	{
 		["Name"] = "Group Join", --uses Beta API 'TeleportPartyAsync', will probably fail most of the time.
-		["Commands"] = {"groupjoin","groupvisit","groupfollow"},
+		["Commands"] = {"groupjoin","groupvisit","partyjoin"},
 		["Level"] = 2,
 		["Args"] = {
 			{
@@ -2775,7 +2775,7 @@ local Commands = {
 	},
 	{
 		["Name"] = "Private Server",
-		["Commands"] = {"createserver","newserver","privateserver"},
+		["Commands"] = {"pserver,","privateserver","createserver","newserver","createpserver"},
 		["Level"] = 2,
 		["Args"] = {
 			{
@@ -2816,7 +2816,7 @@ local Commands = {
 	},
 	{
 		["Name"] = "Join Private Server",
-		["Commands"] = {"joinserver","joinprivateserver"},
+		["Commands"] = {"joinps","joinpserver","joinprivateserver"},
 		["Level"] = 2,
 		["Args"] = {
 			{
